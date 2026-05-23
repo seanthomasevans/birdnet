@@ -13,3 +13,4 @@ audio_log/*.flac
 .DS_Store
 node_modules/
 .pytest_cache/
+test_audio/
