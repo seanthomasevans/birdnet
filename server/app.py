@@ -378,11 +378,12 @@ async def _claude_narrative(body: EnrichBody, ebird: dict) -> Optional[str]:
 
 async def _wikipedia_summary(common: str, sci: Optional[str]) -> Optional[dict]:
     title = (sci or common).replace(" ", "_")
+    # Wikipedia REST API blocks default httpx UA with 403. Identify properly.
+    headers = {"User-Agent": "BirdNET-PWA/0.1 (https://github.com/seanthomasevans/birdnet)"}
     try:
-        async with httpx.AsyncClient(timeout=8.0, follow_redirects=True) as client:
+        async with httpx.AsyncClient(timeout=8.0, follow_redirects=True, headers=headers) as client:
             r = await client.get(f"https://en.wikipedia.org/api/rest_v1/page/summary/{title}")
             if r.status_code != 200 and sci:
-                # fall back to common name
                 r = await client.get(
                     f"https://en.wikipedia.org/api/rest_v1/page/summary/{common.replace(' ', '_')}"
                 )
