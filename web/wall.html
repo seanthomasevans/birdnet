@@ -5,297 +5,344 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>BirdNET · wall</title>
 <style>
-  /* ────────────────────────────────────────────────────────────────
-     Type system
-     ────────────────────────────────────────────────────────────────
-     Three voices, used consistently:
-       — Serif (Iowan Old Style): Indigenous, English, Latin names. The
-         language of attention.
-       — Mono (SF Mono): the phonetic guide. The act of pronouncing.
-       — Sans caps (SF Pro): labels and metadata. Quiet structural type.
-     Built for a 720p projector — nothing smaller than ~18px at 1280×720
-     (≈1.4vw). Generous breath between sections. High contrast on black.
-     ──────────────────────────────────────────────────────────────── */
+  /* ─────────────────────────────────────────────────────────────────
+     Wall projection — museum-label grid.
+     720p projector. 12-column grid. Asymmetric editorial layout.
+     Three voices: serif (names), mono (phonetic + system), sans-caps
+     (labels). Vertical rhythm anchored to the column gutter.
+     ───────────────────────────────────────────────────────────────── */
 
   :root {
     --bg: #000;
-    --ink: #f4f1ea;        /* warm bone */
-    --accent: #6ee3a9;     /* mint green */
+    --ink: #f4f1ea;
+    --accent: #6ee3a9;
     --dim: #8a9d92;
-    --rule: rgba(110, 227, 169, 0.10);
+    --rule: rgba(244, 241, 234, 0.10);
+    --rule-accent: rgba(110, 227, 169, 0.18);
     --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "P052", Georgia, serif;
     --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
-    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Menlo", monospace;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+
+    /* Grid system */
+    --cols: 12;
+    --col-gap: 1.6vw;
+    --pad-x: 4vw;
+    --pad-y: 3.6vh;
+    --baseline: 1.4vh;
   }
+
+  *, *::before, *::after { box-sizing: border-box; }
   html, body {
     margin: 0; padding: 0;
     background: var(--bg);
     color: var(--ink);
-    font-family: var(--serif);
     height: 100vh; width: 100vw;
     overflow: hidden;
     user-select: none;
     cursor: none;
+    font-family: var(--serif);
     -webkit-font-smoothing: antialiased;
     text-rendering: geometricPrecision;
   }
+
+  /* Outer page: 3 horizontal bands (header / stage / diary). Bands
+     are separated by hairline borders on the header and diary; the
+     stage absorbs the remaining space. */
   body {
     display: grid;
-    /* land header / hero stage / today diary / system */
-    grid-template-rows: auto 1fr auto auto;
-  }
-
-  /* Re-usable small caps label — appears above territory and language. */
-  .label {
-    font-family: var(--sans);
-    font-size: clamp(0.85rem, 1.05vw, 1.15rem);
-    text-transform: uppercase;
-    letter-spacing: 0.42em;
-    color: var(--accent);
-    opacity: 0.85;
-    font-weight: 400;
-  }
-
-  /* Hairline accent rule between sections. */
-  hr.rule {
-    border: 0;
-    height: 1px;
-    background: var(--rule);
-    margin: 0;
-    width: 100%;
-  }
-
-  /* ───────────────────────────────────────────────────────────────
-     1. LAND HEADER — the dedication. Always visible. The room is on
-     this land before any bird calls. Reads:
-       ON THE LAND OF
-       Mississauga · Anishinabewaki ᐊᓂᔑᓈᐯᐗᑭ
-     The syllabics ride inside the territory name string (data from
-     Native Land Digital) — that's the "additional spelling".          */
-
-  .land {
-    padding: 5.5vh 6vw 3.5vh;
-    text-align: center;
-  }
-  .land .label { display: block; margin-bottom: 1.6vh; }
-  .land-names {
-    font-style: italic;
-    font-size: clamp(1.3rem, 2vw, 2.2rem);
-    color: var(--ink);
-    opacity: 0.88;
-    line-height: 1.4;
-    letter-spacing: 0.005em;
-    max-width: 88vw;
-    margin: 0 auto;
-  }
-  .land-names .sep {
-    color: var(--accent);
-    opacity: 0.4;
-    font-style: normal;
-    margin: 0 0.55em;
-  }
-
-  /* ───────────────────────────────────────────────────────────────
-     2. HERO STAGE — the bird. Vertical stack, centered. Three blocks
-     separated by breath:
-       a) Language-source label (ANISHINAABEMOWIN)
-       b) Indigenous word + phonetic (the bond between sound and sign)
-       c) English common + Latin scientific (the museum label)
-     No information is repeated.                                       */
-
-  .stage {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2vh 5vw;
-    text-align: center;
+    grid-template-rows: auto 1fr auto;
+    padding: var(--pad-y) var(--pad-x);
     gap: 0;
   }
 
-  /* a) Language source above the word — like a poem byline. */
-  .lang {
-    margin-bottom: 3vh;
-    opacity: 0;
-    transition: opacity 1.2s ease;
+  .hdr {
+    padding-bottom: 2.6vh;
+    border-bottom: 1px solid var(--rule);
+  }
+  .diary {
+    padding-top: 2.6vh;
+    border-top: 1px solid var(--rule);
+  }
+  .stage {
+    padding: 4vh 0;
   }
 
-  /* b) The word + phonetic — treated as one typographic unit. */
+  /* Shared 12-col grid for each band that needs it. */
+  .row {
+    display: grid;
+    grid-template-columns: repeat(var(--cols), 1fr);
+    column-gap: var(--col-gap);
+  }
+
+  /* Reusable small-caps label */
+  .label {
+    font-family: var(--sans);
+    font-size: clamp(0.7rem, 0.85vw, 0.95rem);
+    text-transform: uppercase;
+    letter-spacing: 0.38em;
+    color: var(--accent);
+    opacity: 0.78;
+    font-weight: 500;
+  }
+
+  /* ───────────────────────────────────────────────────────────────
+     HEADER BAND — land acknowledgment (left, cols 1–9) + system
+     status (right, cols 10–12). Bottom-aligned baselines. */
+  .hdr { align-items: end; }
+  .hdr-land { grid-column: 1 / 10; }
+  .hdr-status { grid-column: 10 / 13; text-align: right; }
+
+  .hdr-land .label { display: block; margin-bottom: 0.9vh; }
+  .land-names {
+    font-style: italic;
+    font-size: clamp(1rem, 1.45vw, 1.65rem);
+    color: var(--ink);
+    opacity: 0.86;
+    line-height: 1.25;
+    letter-spacing: 0.005em;
+  }
+  .land-names .sep {
+    color: var(--accent);
+    opacity: 0.35;
+    font-style: normal;
+    margin: 0 0.45em;
+  }
+
+  .system {
+    font-family: var(--mono);
+    font-size: clamp(0.7rem, 0.82vw, 0.92rem);
+    color: var(--dim);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .system .conn-dot {
+    display: inline-block;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--dim);
+    margin-right: 9px;
+    vertical-align: 0.06em;
+    transition: background 0.4s ease, box-shadow 0.4s ease;
+  }
+  .system.live {
+    color: var(--accent);
+  }
+  .system.live .conn-dot {
+    background: var(--accent);
+    box-shadow: 0 0 10px 0 rgba(110, 227, 169, 0.45);
+  }
+
+  /* ───────────────────────────────────────────────────────────────
+     STAGE BAND — the bird. Two-column layout inside the 12-col
+     grid: left voice (Indigenous: language → word → phonetic →
+     literal) spans cols 1–9. Right voice (Western: museum tag
+     number, common name, scientific name) spans cols 10–13,
+     right-aligned. Rows are: top-meta / word / bottom-meta. The
+     word is the only element that spans the full 12 columns so
+     long single-line endonyms have room to breathe. */
+  .stage {
+    display: grid;
+    grid-template-columns: repeat(var(--cols), 1fr);
+    grid-template-rows: auto auto auto;
+    column-gap: var(--col-gap);
+    row-gap: 2.4vh;
+    align-content: center;
+    height: 100%;
+  }
+
+  /* Top-meta row */
+  .stage-lang {
+    grid-column: 1 / 8;
+    grid-row: 1;
+    align-self: end;
+  }
+  .stage-tag {
+    grid-column: 8 / 13;
+    grid-row: 1;
+    text-align: right;
+    align-self: end;
+    font-family: var(--mono);
+    font-size: clamp(0.7rem, 0.82vw, 0.92rem);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+  .stage-tag .tag-num { color: var(--accent); opacity: 0.9; margin-right: 1.2em; }
+  .stage-tag .tag-time { color: var(--dim); }
+
+  /* Hero word — spans full grid */
+  .word-wrap {
+    grid-column: 1 / 13;
+    grid-row: 2;
+    align-self: center;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.6vh;
+  }
   .word {
-    --word-size: 11vw;
+    --word-size: 10vw;
     font-size: var(--word-size);
     line-height: 1.0;
     font-weight: 400;
-    letter-spacing: -0.015em;
+    letter-spacing: -0.018em;
     color: var(--ink);
-    opacity: 0;
-    transform: translateY(16px);
-    transition: opacity 1.4s ease, transform 1.4s ease;
     white-space: nowrap;
-    max-width: 92vw;
+    opacity: 0;
+    transform: translateY(12px);
+    transition: opacity 1.2s ease, transform 1.2s ease;
   }
   .phon {
     font-family: var(--mono);
-    font-size: clamp(1.2rem, 1.9vw, 2.1rem);
+    font-size: clamp(1rem, 1.45vw, 1.6rem);
     color: var(--accent);
-    opacity: 0;
-    margin-top: 2.4vh;
     letter-spacing: 0.01em;
-    transition: opacity 1.2s ease 0.3s;
+    opacity: 0;
+    transition: opacity 1.2s ease 0.25s;
   }
+
+  /* Bottom-meta row */
   .literal {
+    grid-column: 1 / 8;
+    grid-row: 3;
+    align-self: start;
     font-style: italic;
-    font-size: clamp(1rem, 1.35vw, 1.5rem);
+    font-size: clamp(0.95rem, 1.2vw, 1.35rem);
     color: var(--ink);
     opacity: 0;
-    margin-top: 1.6vh;
-    max-width: 55ch;
+    max-width: 50ch;
     line-height: 1.4;
-    transition: opacity 1.4s ease 0.6s;
+    transition: opacity 1.2s ease 0.55s;
   }
   .literal:empty { display: none; }
 
-  /* c) Museum label — English first (the room speaks English),
-     Latin underneath in italic for the science. Single column, snug
-     leading — reads as one paragraph not three lines. */
   .museum {
-    margin-top: 7vh;
+    grid-column: 8 / 13;
+    grid-row: 3;
+    align-self: start;
+    text-align: right;
+    border-top: 1px solid var(--rule-accent);
+    padding-top: 1.6vh;
     opacity: 0;
-    transition: opacity 1.6s ease 0.9s;
+    transition: opacity 1.4s ease 0.45s;
   }
   .common {
     font-family: var(--serif);
-    font-size: clamp(1.4rem, 2.3vw, 2.5rem);
-    /* Source data ("Black-capped Chickadee") is already correctly
-       cased — don't transform or we'll uppercase hyphenated halves. */
-    letter-spacing: 0.005em;
+    font-size: clamp(1.2rem, 1.7vw, 1.9rem);
     color: var(--ink);
     line-height: 1.2;
-    margin-bottom: 0.4vh;
+    letter-spacing: 0.005em;
   }
   .sci {
     font-family: var(--serif);
     font-style: italic;
-    font-size: clamp(1rem, 1.45vw, 1.55rem);
+    font-size: clamp(0.9rem, 1.15vw, 1.25rem);
     color: var(--ink);
     opacity: 0.55;
+    margin-top: 0.4vh;
     letter-spacing: 0.005em;
   }
 
-  /* Reveal cascade — entry animation. Times stagger so the eye walks
-     down the stack: label → word → phonetic → literal → museum. */
-  .stage.show .lang { opacity: 1; }
+  /* Reveal cascade */
+  .stage.show .stage-lang .label { opacity: 0.78; }
   .stage.show .word { opacity: 1; transform: translateY(0); }
-  .stage.show .phon { opacity: 0.85; }
-  .stage.show .literal { opacity: 0.6; }
+  .stage.show .phon { opacity: 0.9; }
+  .stage.show .literal { opacity: 0.62; }
   .stage.show .museum { opacity: 1; }
 
-  /* Idle state — only the listening pulse, nothing else. */
-  .stage.idle .idle-line { opacity: 0.22; }
-  .stage.idle .lang,
-  .stage.idle .word,
-  .stage.idle .phon,
-  .stage.idle .museum { display: none; }
+  /* Idle — only a quiet pulse in the hero slot */
   .idle-line {
+    grid-column: 1 / 13;
+    grid-row: 2;
+    align-self: center;
+    text-align: left;
     font-family: var(--sans);
-    font-size: clamp(0.95rem, 1.1vw, 1.15rem);
+    font-size: clamp(0.9rem, 1.05vw, 1.15rem);
     text-transform: uppercase;
     letter-spacing: 0.5em;
     color: var(--ink);
     opacity: 0;
     transition: opacity 2s ease;
   }
+  .stage.idle .idle-line { opacity: 0.25; }
+  .stage:not(.idle) .idle-line { display: none; }
+  .stage.idle .stage-lang,
+  .stage.idle .stage-tag,
+  .stage.idle .word-wrap,
+  .stage.idle .literal,
+  .stage.idle .museum { visibility: hidden; }
 
   /* ───────────────────────────────────────────────────────────────
-     3. TODAY DIARY — every species heard today on a single italic
-     line. Currently-on-hero entry highlighted accent; the
-     voiceprint-clustered count appears as ×N when ≥2.                 */
+     DIARY BAND — today's species. Two columns: label gutter (cols
+     1–2) and ledger (cols 3–13). Single italic line, scrolls via
+     truncation rather than wrap. */
+  .diary { align-items: baseline; }
+  .diary-label { grid-column: 1 / 3; }
+  .diary-body  { grid-column: 3 / 13; }
 
-  .today-wrap {
-    padding: 2vh 6vw 2vh;
-    border-top: 1px solid var(--rule);
-  }
-  .today-label {
-    display: block;
-    text-align: center;
-    margin-bottom: 1vh;
-    font-size: clamp(0.7rem, 0.85vw, 0.95rem);
-    opacity: 0.55;
-  }
   .today {
     font-family: var(--serif);
     font-style: italic;
-    font-size: clamp(1rem, 1.45vw, 1.55rem);
+    font-size: clamp(0.95rem, 1.2vw, 1.35rem);
     color: var(--ink);
     opacity: 0.55;
-    line-height: 1.5;
-    text-align: center;
+    line-height: 1.4;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    max-width: 88vw;
-    margin: 0 auto;
   }
-  .today:empty { display: none; }
-  .today-wrap:has(.today:empty) { display: none; }
-  .today .sep { color: var(--accent); opacity: 0.4; margin: 0 0.55em; font-style: normal; }
-  .today .now { color: var(--accent); opacity: 1; font-style: normal; }
+  .today:empty::before {
+    content: "—";
+    opacity: 0.3;
+    font-style: normal;
+  }
+  .today .sep {
+    color: var(--accent);
+    opacity: 0.4;
+    margin: 0 0.55em;
+    font-style: normal;
+  }
+  .today .now {
+    color: var(--accent);
+    opacity: 1;
+    font-style: normal;
+  }
   .today .count {
     font-family: var(--mono);
     font-style: normal;
-    font-size: 0.82em;
+    font-size: 0.78em;
     color: var(--accent);
     opacity: 0.7;
-    margin-left: 0.25em;
-  }
-
-  /* ───────────────────────────────────────────────────────────────
-     4. SYSTEM FOOTER — one line, bottom right. Just the heartbeat.    */
-
-  .footer {
-    padding: 1.4vh 2.6vw;
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-  }
-  .system {
-    font-family: var(--mono);
-    font-size: clamp(0.65rem, 0.78vw, 0.85rem);
-    color: var(--dim);
-    opacity: 0.5;
-    white-space: nowrap;
-    letter-spacing: 0.06em;
-  }
-  .system .conn-dot {
-    display: inline-block;
-    width: 7px; height: 7px; border-radius: 50%;
-    background: var(--dim);
-    margin-right: 8px;
-    vertical-align: middle;
-    transition: background 0.4s ease;
-    box-shadow: 0 0 0 0 rgba(110, 227, 169, 0);
-  }
-  .system.live .conn-dot {
-    background: var(--accent);
-    box-shadow: 0 0 12px 1px rgba(110, 227, 169, 0.35);
+    margin-left: 0.3em;
+    letter-spacing: 0.04em;
   }
 </style>
 </head>
 <body>
 
-  <!-- 1. land header — always visible -->
-  <header class="land">
-    <span class="label">on the land of</span>
-    <div class="land-names" id="land-names"></div>
+  <!-- HEADER: land + status -->
+  <header class="row hdr">
+    <div class="hdr-land">
+      <span class="label">on the land of</span>
+      <div class="land-names" id="land-names"></div>
+    </div>
+    <div class="hdr-status">
+      <span class="system" id="system">
+        <span class="conn-dot"></span><span id="meta-text">offline</span>
+      </span>
+    </div>
   </header>
 
-  <hr class="rule" />
-
-  <!-- 2. hero stage — bird block -->
+  <!-- STAGE: the bird -->
   <main class="stage idle" id="stage">
-    <div class="lang"><span class="label" id="lang-label"></span></div>
-    <div class="word" id="word"></div>
-    <div class="phon" id="phon"></div>
+    <div class="stage-lang"><span class="label" id="lang-label"></span></div>
+    <div class="stage-tag">
+      <span class="tag-num" id="tag-num"></span><span class="tag-time" id="tag-time"></span>
+    </div>
+    <div class="word-wrap">
+      <div class="word" id="word"></div>
+      <div class="phon" id="phon"></div>
+    </div>
     <div class="literal" id="literal"></div>
     <div class="museum">
       <div class="common" id="common"></div>
@@ -304,16 +351,11 @@
     <div class="idle-line" id="idle-line">listening</div>
   </main>
 
-  <!-- 3. today's diary -->
-  <div class="today-wrap">
-    <span class="label today-label">today</span>
-    <div class="today" id="today"></div>
-  </div>
-
-  <!-- 4. system footer -->
-  <div class="footer">
-    <div class="system"><span class="conn-dot"></span><span id="meta-text">offline</span></div>
-  </div>
+  <!-- DIARY: today's species -->
+  <footer class="row diary">
+    <div class="diary-label"><span class="label">today</span></div>
+    <div class="diary-body"><div class="today" id="today"></div></div>
+  </footer>
 
 <script type="module">
   const params = new URLSearchParams(location.search);
@@ -329,15 +371,15 @@
   const $common = document.getElementById("common");
   const $langLabel = document.getElementById("lang-label");
   const $landNames = document.getElementById("land-names");
-  const $system = document.querySelector(".system");
+  const $system = document.getElementById("system");
   const $metaText = document.getElementById("meta-text");
   const $today = document.getElementById("today");
+  const $tagNum = document.getElementById("tag-num");
+  const $tagTime = document.getElementById("tag-time");
 
-  // ──────────────────────────────────────────────────────────────────
-  // fitWord — measure with canvas against the live computed font so
-  // the shrink decision is synchronous and accurate regardless of
-  // animation/visibility state. Binary-searches vw-based font size
-  // until the word fits 92vw on a single line.
+  // fitWord — canvas-measured binary search. Caps at 10vw upper so
+  // short words don't stretch; floors at 3vw so very long endonyms
+  // still survive a single line.
   const _measureCtx = document.createElement("canvas").getContext("2d");
   function fitWord(el) {
     const text = el.textContent || "";
@@ -348,6 +390,7 @@
     const fs = cs.fontStyle || "normal";
     const ls = parseFloat(cs.letterSpacing) || 0;
     const vw = window.innerWidth;
+    // 100vw - 2 * pad-x (4vw) = 92vw usable in the stage row.
     const max = vw * 0.92;
     let lo = 3, hi = 10;
     for (let i = 0; i < 16 && hi - lo > 0.05; i++) {
@@ -361,8 +404,6 @@
   }
   window.addEventListener("resize", () => fitWord($word));
 
-  // Render the land header from a territory payload (Native Land
-  // Digital format). Idempotent — safe to call multiple times.
   function renderLand(territory) {
     if (!territory || !territory.territories || !territory.territories.length) return;
     const names = territory.territories.map((t) => t.name);
@@ -371,21 +412,26 @@
       .join(`<span class="sep">·</span>`);
   }
 
-  // ──────────────────────────────────────────────────────────────────
-  // show: render a bird detection in the stage block. No information
-  // is duplicated — the language source appears once (above the hero
-  // word), English common name once (in the museum block), Latin once
-  // (italic underneath the English).
+  let detectionCount = 0;
+
+  function fmtTime(d) {
+    const h = String(d.getHours()).padStart(2, "0");
+    const m = String(d.getMinutes()).padStart(2, "0");
+    return `${h}:${m}`;
+  }
+
   function show(event) {
     const ind = event.indigenous;
     const name = ind && ind.available && ind.names && ind.names[0];
     if (!name) return;
 
     const langMeta = (ind.languages || {})[name.language] || {};
-    // Prefer the endonym (the language's name for itself). Fall back to
-    // English if we don't have it. No parenthetical second copy.
     const langText = langMeta.endonym || langMeta.english_name || name.language || "";
     $langLabel.textContent = langText;
+
+    detectionCount += 1;
+    $tagNum.textContent = `№ ${String(detectionCount).padStart(2, "0")}`;
+    $tagTime.textContent = fmtTime(new Date());
 
     $word.textContent = name.word || "";
     fitWord($word);
@@ -409,8 +455,6 @@
     $metaText.textContent = state;
   }
 
-  // Boot the land header from /territory so it's populated before any
-  // bird detection lands.
   async function loadLand() {
     try {
       const t = await (await fetch(`${server}/territory?lat=44.92&lon=-79.37`)).json();
@@ -424,15 +468,13 @@
       const r = await fetch(`${server}/catalog?source=listener`);
       const c = await r.json();
       if (!c.species || !c.species.length) { $today.innerHTML = ""; return; }
-      const others = c.species.filter((s) => s.scientific_name !== currentSci);
-      if (others.length === 0) { $today.innerHTML = ""; return; }
       const parts = c.species.map((s) => {
         const word = s.indigenous_name;
-        const now = currentSci && s.scientific_name === currentSci ? "now" : "";
+        const isNow = currentSci && s.scientific_name === currentSci;
         const n = s.individual_count || 0;
         const tail = n > 1 ? `<span class="count">×${n}</span>` : "";
         const inner = `<span>${word}</span>${tail}`;
-        return now ? `<span class="now">${inner}</span>` : inner;
+        return isNow ? `<span class="now">${inner}</span>` : inner;
       });
       $today.innerHTML = parts.join(`<span class="sep">·</span>`);
     } catch {}
@@ -440,8 +482,6 @@
   loadToday();
   setInterval(() => loadToday(), 60_000);
 
-  // Bootstrap the hero from /catalog on load so a refresh doesn't sit
-  // idle until the next bird fires.
   async function bootstrapHero() {
     try {
       const r = await fetch(`${server}/catalog?source=listener`);
@@ -472,8 +512,6 @@
   }
   bootstrapHero();
 
-  // ──────────────────────────────────────────────────────────────────
-  // WebSocket — live detection feed with exponential backoff to 30s.
   let ws;
   let backoff = 1000;
   function connect() {
