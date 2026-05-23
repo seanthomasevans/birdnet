@@ -132,11 +132,12 @@ async def analyze(
     now = dt.datetime.utcnow()
     week_val = week or int(now.strftime("%V"))
 
-    # Persist raw upload, then convert to wav for BirdNET (it wants PCM).
+    # Persist raw upload as `<id>_raw.<ext>`, then convert to normalized `<id>.wav`.
+    # Separate names so ffmpeg never collides when the source is already wav.
     src_ext = (audio.filename or "clip").rsplit(".", 1)[-1].lower()
-    if src_ext not in {"wav", "webm", "ogg", "m4a", "mp3", "flac"}:
+    if src_ext not in {"wav", "webm", "ogg", "m4a", "mp3", "flac", "mp4"}:
         src_ext = "webm"
-    raw_path = AUDIO_DIR / f"{det_id}.{src_ext}"
+    raw_path = AUDIO_DIR / f"{det_id}_raw.{src_ext}"
     raw_path.write_bytes(raw)
 
     wav_path = AUDIO_DIR / f"{det_id}.wav"
