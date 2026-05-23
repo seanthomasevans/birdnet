@@ -35,6 +35,8 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from server.indigenous import dataset_coverage, lookup_names, lookup_territory
+
 ROOT = Path(__file__).resolve().parent.parent
 WEB_DIR = ROOT / "web"
 AUDIO_DIR = ROOT / "audio_log"
@@ -108,8 +110,15 @@ def healthz() -> dict:
         "anthropic": bool(anthropic_client),
         "ebird": bool(EBIRD_API_KEY),
         "model_loaded": analyzer is not None,
+        "indigenous_dataset": dataset_coverage(),
         "ts": dt.datetime.utcnow().isoformat() + "Z",
     }
+
+
+@app.get("/territory")
+async def territory(lat: float, lon: float) -> dict:
+    """Whose traditional territory is this lat/lon on? Native Land Digital lookup."""
+    return await lookup_territory(lat, lon)
 
 
 @app.post("/analyze")
@@ -232,6 +241,16 @@ async def enrich(body: EnrichBody) -> dict:
     out["ebird"] = await _ebird_regional_check(body.species, body.scientific_name, body.lat, body.lon)
     out["narrative"] = await _claude_narrative(body, out["ebird"])
     out["wikipedia"] = await _wikipedia_summary(body.species, body.scientific_name)
+
+    # Indigenous names + territory acknowledgment. Territory lookup only when
+    # we have GPS; name lookup runs either way (so a chickadee detected
+    # without geolocation still surfaces gijigijigaaneshiinh).
+    territory_info: Optional[dict] = None
+    if body.lat is not None and body.lon is not None:
+        territory_info = await lookup_territory(body.lat, body.lon)
+    languages = (territory_info or {}).get("languages_at_location") or None
+    out["territory"] = territory_info
+    out["indigenous"] = lookup_names(body.scientific_name, languages)
 
     return out
 

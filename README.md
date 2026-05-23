@@ -59,9 +59,26 @@ Open the PWA on your phone (either the GH Pages URL or the served `/` from the M
 
 BirdNET takes `lat`, `lon`, `week_48` as model inputs — it filters its 6000-species softmax to species plausible in that region/season. The PWA grabs the browser's geolocation and passes it on every `/analyze` call.
 
+## Indigenous bird names + territory acknowledgment
+
+On detection, the PWA also surfaces:
+
+- **Whose traditional territory** the listener is standing on (via the Native Land Digital API when a key is configured, with a coarse regional fallback for Ontario otherwise).
+- **The bird's name** in the Indigenous language(s) traditionally spoken at that location — written in the language's orthography, with a phonetic guide, an audio pronunciation when sourced, and a citation back to the community-led dictionary that holds the word.
+
+The v0.1 dataset (`server/data/indigenous_names.json`) covers 15 common Ontario birds in **Anishinaabemowin**, every entry cited to the Ojibwe People's Dictionary. **Kanien'kéha (Mohawk)** and **Cree (nēhiyawēwin / ililīmowin)** language scaffolding is in place; names will be added as community-led sources are integrated.
+
+Principles:
+
+- **Cited or not present.** Every name links to its source dictionary. We never fabricate names or generate phonetics speculatively.
+- **Community labour stays visible.** Audio playback links back to the source so the speaker's contribution is acknowledged.
+- **The dataset is small on purpose.** Quality, attribution, and community-led sourcing beat coverage.
+
+To upgrade territory lookup from the regional fallback to per-point boundaries, get a free Native Land Digital API key at <https://api-docs.native-land.ca> and set `NATIVELAND_API_KEY` in `.env`.
+
 ## Privacy
 
-Audio + metadata live on your Mac in `audio_log/` and `db/birdnet.sqlite`. Nothing is sent to a third party unless you tap **tell me about this bird** (which then calls Claude + eBird + Wikipedia for that one species).
+Audio + metadata live on your Mac in `audio_log/` and `db/birdnet.sqlite`. Nothing is sent to a third party unless you tap **tell me about this bird** (which then calls Claude + eBird + Wikipedia + Native Land Digital for that one species).
 
 ## Tradeoffs
 

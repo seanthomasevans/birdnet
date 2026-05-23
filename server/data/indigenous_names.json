@@ -1,0 +1,249 @@
+{
+  "version": "0.1",
+  "last_updated": "2026-05-22",
+  "scope": "Canada — Ontario first. Anishinaabemowin (Ojibwe) entries sourced from the Ojibwe People's Dictionary. Designed for extension to Kanien'kéha (Mohawk), Cree (nēhiyawēwin / ililīmowin), and other Indigenous languages of Turtle Island.",
+  "acknowledgment": "Indigenous names for birds are gifts from First Nations, Métis, and Inuit communities. They belong to those communities — we host citations and pronunciations here with reverence and attribution, and link back to the community-led sources that hold them.",
+  "principles": [
+    "Every name is cited to a community-led or community-sanctioned source.",
+    "Dialect and spelling vary by community — we name the source community wherever known.",
+    "If we don't have a verified name for a species in a language, we say so plainly. We do not fabricate.",
+    "Audio pronunciations link back to the source dictionary so the speaker's labour and consent stays visible."
+  ],
+  "languages": {
+    "ojibwe": {
+      "endonym": "Anishinaabemowin",
+      "english_name": "Ojibwe / Anishinaabemowin",
+      "nations": "Anishinaabe — Ojibwe, Chippewa, Mississauga, Odawa, Algonquin, Saulteaux, Potawatomi, Nipissing. Spoken across most of Ontario.",
+      "primary_source": "The Ojibwe People's Dictionary",
+      "primary_source_url": "https://ojibwe.lib.umn.edu/",
+      "source_credit": "A project of the Department of American Indian Studies, University of Minnesota, in partnership with Anishinaabe speakers and the Minnesota Historical Society."
+    },
+    "mohawk": {
+      "endonym": "Kanien'kéha",
+      "english_name": "Mohawk / Kanien'kéha",
+      "nations": "Kanien'kehá:ka (People of the Flint) — Haudenosaunee / Six Nations. Traditional territory spans the St. Lawrence valley and southern Ontario, including Tyendinaga, Akwesasne, Kahnawà:ke, Kanehsatà:ke, and the Six Nations of the Grand River.",
+      "primary_source": "Onkwawenna Kentyohkwa and Kanien'kehá:ka Onkwawén:na Raotitiókwa Language and Cultural Center references",
+      "primary_source_url": "https://kanienkeha.net/",
+      "source_credit": "Verified entries will be added as community-led dictionary sources are integrated."
+    },
+    "cree": {
+      "endonym": "ᓀᐦᐃᔭᐍᐏᐣ / nēhiyawēwin (Plains Cree) and ililīmowin (Moose / Swampy Cree)",
+      "english_name": "Cree",
+      "nations": "Mushkegowuk (Swampy Cree) — northern Ontario coast of James Bay & Hudson Bay; Moose Cree at Moose Factory; Plains Cree to the west.",
+      "primary_source": "Online Cree Dictionary / itwêwina; Cree Literacy Network",
+      "primary_source_url": "https://itwewina.altlab.app/",
+      "source_credit": "Verified entries will be added as community-led dictionary sources are integrated."
+    }
+  },
+  "species": {
+    "generic_bird": {
+      "common_name": "bird (generic)",
+      "scientific_name": null,
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "bineshiinh",
+          "plural": "bineshiinyag",
+          "phonetic": "bih-neh-SHEENH",
+          "literal": "small bird; songbird",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/bineshiinh-na",
+          "audio_url": null
+        }
+      ]
+    },
+    "Gavia immer": {
+      "common_name": "Common Loon",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "maang",
+          "plural": "maangwag",
+          "phonetic": "MAHNG",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/maang-na",
+          "audio_url": null,
+          "notes": "The loon carries deep meaning for many Anishinaabeg — a doodem (clan) and a teacher."
+        }
+      ]
+    },
+    "Haliaeetus leucocephalus": {
+      "common_name": "Bald Eagle",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "migizi",
+          "plural": "migiziwag",
+          "phonetic": "mih-GIH-zih",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/migizi-na",
+          "audio_url": null,
+          "notes": "Eagle carries prayers between people and Creator in Anishinaabe teachings. Migizi is also a doodem."
+        }
+      ]
+    },
+    "Corvus brachyrhynchos": {
+      "common_name": "American Crow",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "aandeg",
+          "plural": "aandegwag",
+          "phonetic": "AHN-deg",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/aandeg-na",
+          "audio_url": null
+        }
+      ]
+    },
+    "Corvus corax": {
+      "common_name": "Common Raven",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "gaagaagi",
+          "plural": "gaagaagiwag",
+          "phonetic": "gah-GAH-gih",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/gaagaagi-na",
+          "audio_url": null,
+          "notes": "Onomatopoeic — echoes the raven's call."
+        }
+      ]
+    },
+    "Branta canadensis": {
+      "common_name": "Canada Goose",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "nika",
+          "plural": "nikag",
+          "phonetic": "NIH-kah",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/nika-na",
+          "audio_url": null
+        }
+      ]
+    },
+    "Anas platyrhynchos": {
+      "common_name": "Mallard",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "zhiishiib",
+          "plural": "zhiishiibag",
+          "phonetic": "ZHEE-sheeb",
+          "literal": "duck (generic)",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/zhiishiib-na",
+          "audio_url": null,
+          "notes": "Zhiishiib is the general word for duck; specific species often share this name with descriptive modifiers."
+        }
+      ]
+    },
+    "Poecile atricapillus": {
+      "common_name": "Black-capped Chickadee",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "gijigijigaaneshiinh",
+          "plural": "gijigijigaaneshiinyag",
+          "phonetic": "gih-jih-gih-jih-GAH-neh-sheenh",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/gijigijigaaneshiinh-na",
+          "audio_url": null,
+          "notes": "Onomatopoeic — the name carries the chickadee's chatter."
+        }
+      ]
+    },
+    "Cyanocitta cristata": {
+      "common_name": "Blue Jay",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "diindiisi",
+          "plural": "diindiisiwag",
+          "phonetic": "deen-DEE-sih",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/diindiisi-na",
+          "audio_url": null,
+          "notes": "Onomatopoeic — echoes the jay's call."
+        }
+      ]
+    },
+    "Archilochus colubris": {
+      "common_name": "Ruby-throated Hummingbird",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "nenookaasi",
+          "plural": "nenookaasiwag",
+          "phonetic": "neh-NOO-kah-sih",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/nenookaasi-na",
+          "audio_url": null
+        }
+      ]
+    },
+    "Bubo virginianus": {
+      "common_name": "Great Horned Owl",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "gookooko'oo",
+          "plural": "gookooko'oog",
+          "phonetic": "GOO-koo-KOH-oh",
+          "literal": "owl (generic, esp. Great Horned)",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/gookookoo-na",
+          "audio_url": null,
+          "notes": "Onomatopoeic — carries the owl's hoot."
+        }
+      ]
+    },
+    "Dryocopus pileatus": {
+      "common_name": "Pileated Woodpecker",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "baapaase",
+          "plural": "baapaaseg",
+          "phonetic": "BAH-pah-seh",
+          "literal": "woodpecker (esp. Pileated)",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/baapaase-na",
+          "audio_url": null
+        }
+      ]
+    },
+    "Meleagris gallopavo": {
+      "common_name": "Wild Turkey",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "mizise",
+          "plural": "miziseg",
+          "phonetic": "mih-ZIH-seh",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/mizise-na",
+          "audio_url": null
+        }
+      ]
+    },
+    "Bonasa umbellus": {
+      "common_name": "Ruffed Grouse",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "bine",
+          "plural": "binewag",
+          "phonetic": "BIH-neh",
+          "literal": "partridge / grouse",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/bine-na",
+          "audio_url": null
+        }
+      ]
+    },
+    "Turdus migratorius": {
+      "common_name": "American Robin",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "opichi",
+          "plural": "opichiwag",
+          "phonetic": "oh-PIH-chih",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/opichi-na",
+          "audio_url": null,
+          "notes": "Opichi's return is a marker of spring in many Anishinaabe communities."
+        }
+      ]
+    }
+  }
+}

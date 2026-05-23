@@ -376,3 +376,152 @@ main {
 }
 
 h2 { font-size: 1.05rem; margin: 0 0 14px; letter-spacing: 0.02em; }
+
+/* ── geo pill (tap to retry) ─────────────────────────────────── */
+
+.geo-pill {
+  display: inline-block;
+  background: var(--bg-elev);
+  border: 1px solid var(--bg-elev-2);
+  color: var(--fg-dim);
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-family: inherit;
+  cursor: pointer;
+  margin: 6px auto 18px;
+  text-align: center;
+  display: block;
+  width: fit-content;
+  max-width: 90%;
+  transition: background 0.18s, color 0.18s, border-color 0.18s;
+}
+
+.geo-pill:active { transform: scale(0.97); }
+.geo-pill.acquiring { border-color: var(--warn); color: var(--warn); }
+.geo-pill.ok { border-color: var(--accent-dim); color: var(--accent); }
+.geo-pill.warn { border-color: var(--warn); color: var(--warn); }
+.geo-pill.denied { border-color: var(--err); color: var(--err); }
+
+/* ── indigenous names block ──────────────────────────────────── */
+
+.indigenous-block {
+  margin: 14px 0 4px;
+  padding: 14px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #14302a 0%, #0d2218 100%);
+  border: 1px solid var(--bg-elev-2);
+}
+
+.indigenous-block h4 {
+  margin: 0 0 8px;
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+
+.indigenous-block .terr-line {
+  margin: 0 0 12px;
+  font-size: 0.88rem;
+  color: var(--fg);
+  font-style: italic;
+}
+
+.indigenous-block .terr-line a {
+  color: var(--fg);
+  border-bottom: 1px dotted var(--fg-dim);
+  text-decoration: none;
+}
+
+.ind-name {
+  margin: 10px 0;
+  padding: 10px 12px;
+  background: rgba(0,0,0,0.18);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+}
+
+.ind-lang {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--fg-dim);
+  margin-bottom: 4px;
+}
+
+.ind-lang .endonym {
+  text-transform: none;
+  letter-spacing: 0;
+  font-style: italic;
+  color: var(--accent-dim);
+}
+
+.ind-word-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ind-word {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--fg);
+  letter-spacing: 0.01em;
+}
+
+.ind-phon {
+  font-size: 0.88rem;
+  color: var(--fg-dim);
+  font-family: ui-monospace, "SF Mono", monospace;
+}
+
+.ind-play {
+  background: var(--accent);
+  color: #052016;
+  border: none;
+  border-radius: 999px;
+  width: 28px;
+  height: 28px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.ind-meta {
+  margin-top: 4px;
+  font-size: 0.78rem;
+  color: var(--fg-dim);
+}
+
+.ind-meta em { color: var(--fg); font-style: normal; }
+
+.ind-src {
+  margin-top: 4px;
+  font-size: 0.75rem;
+}
+
+.ind-src a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.ind-ack {
+  margin: 12px 0 0;
+  font-size: 0.76rem;
+  color: var(--fg-dim);
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.ind-ack.ind-empty { color: var(--fg-dim); font-style: normal; }
+.ind-ack.ind-empty a { color: var(--accent); }
+
+.terr-note {
+  margin: 8px 0 0;
+  font-size: 0.7rem;
+  color: var(--fg-dim);
+  opacity: 0.75;
+}

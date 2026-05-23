@@ -73,29 +73,67 @@ function isoWeek(date) {
   return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
 }
 
-function requestGeo() {
+function requestGeo({ silent = false } = {}) {
   const $geo = document.getElementById("geo-status");
   if (!navigator.geolocation) {
-    $geo.textContent = "no geolocation — region filter off";
-    return;
+    $geo.textContent = "no geolocation API · tap to retry";
+    $geo.classList.add("warn");
+    return Promise.resolve(null);
   }
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      geo = {
-        lat: pos.coords.latitude,
-        lon: pos.coords.longitude,
-        week: isoWeek(new Date()),
-        accuracy: pos.coords.accuracy,
-      };
-      $geo.textContent = `${geo.lat.toFixed(4)}, ${geo.lon.toFixed(4)} · week ${geo.week} · ±${Math.round(geo.accuracy)}m`;
-    },
-    (err) => {
-      $geo.textContent = `geo denied — region filter off (${err.message})`;
-    },
-    { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
-  );
+  if (!silent) {
+    $geo.textContent = "acquiring location…";
+    $geo.classList.remove("warn", "denied");
+    $geo.classList.add("acquiring");
+  }
+  return new Promise((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        geo = {
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude,
+          week: isoWeek(new Date()),
+          accuracy: pos.coords.accuracy,
+        };
+        $geo.classList.remove("warn", "denied", "acquiring");
+        $geo.classList.add("ok");
+        $geo.textContent = `${geo.lat.toFixed(4)}, ${geo.lon.toFixed(4)} · wk ${geo.week} · ±${Math.round(geo.accuracy)}m`;
+        resolve(geo);
+      },
+      (err) => {
+        const reason = err && err.code === 1 ? "permission denied" : err && err.code === 3 ? "timed out" : (err && err.message) || "unavailable";
+        $geo.classList.remove("ok", "acquiring");
+        $geo.classList.add(err && err.code === 1 ? "denied" : "warn");
+        $geo.textContent = `location ${reason} · tap to retry`;
+        resolve(null);
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 }
+    );
+  });
 }
-requestGeo();
+
+// Tap the geo pill to retry — covers the iOS case where user denied on first
+// prompt and granted later via Settings, so we never see a fresh permission
+// event. Also covers reconnect after airplane-mode toggles.
+document.getElementById("geo-status").addEventListener("click", () => requestGeo());
+
+// On page load: if Permissions API is available, only attempt geolocation
+// when state is 'granted' or 'prompt'. Avoids spamming a denied user.
+if (navigator.permissions && navigator.permissions.query) {
+  navigator.permissions.query({ name: "geolocation" }).then((p) => {
+    if (p.state === "denied") {
+      const $g = document.getElementById("geo-status");
+      $g.classList.add("denied");
+      $g.textContent = "location denied · tap to retry (then grant in browser)";
+    } else {
+      requestGeo();
+    }
+    p.addEventListener && p.addEventListener("change", () => {
+      if (p.state === "granted") requestGeo();
+    });
+  }).catch(() => requestGeo());
+} else {
+  requestGeo();
+}
 
 // ── recording ─────────────────────────────────────────────────────
 const $btn = document.getElementById("record-btn");
@@ -107,6 +145,11 @@ $btn.addEventListener("click", async () => {
   if (recorder && recorder.state === "recording") {
     stopRecording();
     return;
+  }
+  // Last chance to grab geo before we start recording — covers the case
+  // where permission was granted after page load but we never re-polled.
+  if (!geo) {
+    try { await Promise.race([requestGeo({ silent: true }), new Promise((r) => setTimeout(r, 1500))]); } catch {}
   }
   await startRecording();
 });
@@ -282,6 +325,9 @@ async function doEnrich(hit, $out) {
     } else if (data.wikipedia?.extract) {
       html += `<h4>wikipedia</h4><p>${escape(data.wikipedia.extract)}</p>`;
     }
+
+    html += renderIndigenousBlock(data);
+
     if (data.ebird?.available) {
       const n = data.ebird.recent_obs_count;
       const cls = n > 0 ? "good" : "";
@@ -364,6 +410,81 @@ function escape(s) {
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
   }[c]));
 }
+
+// Render the Indigenous names + territory acknowledgment block. Every name
+// links back to its source dictionary so the speaker/community labour stays
+// visible. Empty data → empty render (we never fabricate).
+function renderIndigenousBlock(data) {
+  const ind = data.indigenous;
+  const terr = data.territory;
+  const hasNames = ind && ind.available && ind.names && ind.names.length;
+  const hasTerritory = terr && terr.available && terr.territories && terr.territories.length;
+  if (!hasNames && !hasTerritory) return "";
+
+  let html = '<div class="indigenous-block">';
+  html += '<h4>on this land</h4>';
+
+  if (hasTerritory) {
+    const tNames = terr.territories.map((t) => {
+      if (t.url) return `<a href="${escape(t.url)}" target="_blank" rel="noopener">${escape(t.name)}</a>`;
+      return escape(t.name);
+    }).join(" · ");
+    html += `<p class="terr-line">${tNames}</p>`;
+  }
+
+  if (hasNames) {
+    for (const n of ind.names) {
+      const langMeta = (ind.languages || {})[n.language] || {};
+      const langLabel = langMeta.english_name || n.language;
+      const endonym = langMeta.endonym ? ` <span class="endonym">(${escape(langMeta.endonym)})</span>` : "";
+      html += '<div class="ind-name">';
+      html += `<div class="ind-lang">${escape(langLabel)}${endonym}</div>`;
+      html += `<div class="ind-word-row">`;
+      html += `<span class="ind-word">${escape(n.word)}</span>`;
+      if (n.phonetic) html += ` <span class="ind-phon">[${escape(n.phonetic)}]</span>`;
+      if (n.audio_url) {
+        html += ` <button type="button" class="ind-play" data-audio="${escape(n.audio_url)}" aria-label="play pronunciation">▶</button>`;
+      }
+      html += `</div>`;
+      if (n.plural || n.literal || n.notes) {
+        const bits = [];
+        if (n.plural) bits.push(`plural: <em>${escape(n.plural)}</em>`);
+        if (n.literal) bits.push(`literal: ${escape(n.literal)}`);
+        if (n.notes) bits.push(escape(n.notes));
+        html += `<div class="ind-meta">${bits.join(" · ")}</div>`;
+      }
+      if (n.source_url) {
+        html += `<div class="ind-src"><a href="${escape(n.source_url)}" target="_blank" rel="noopener">source →</a></div>`;
+      }
+      html += '</div>';
+    }
+    if (ind.acknowledgment) {
+      html += `<p class="ind-ack">${escape(ind.acknowledgment)}</p>`;
+    }
+  } else if (hasTerritory) {
+    html += `<p class="ind-ack ind-empty">No verified Indigenous name in our dataset for this species in the languages traditionally spoken here. <a href="https://github.com/seanthomasevans/birdnet" target="_blank" rel="noopener">contribute a citation →</a></p>`;
+  }
+
+  if (terr && terr.note) {
+    html += `<p class="terr-note">${escape(terr.note)}</p>`;
+  }
+
+  html += '</div>';
+  return html;
+}
+
+// Audio playback for Indigenous pronunciations — wired up via event delegation
+// so dynamically-rendered buttons just work.
+let indAudio;
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest && e.target.closest(".ind-play");
+  if (!btn) return;
+  const url = btn.dataset.audio;
+  if (!url) return;
+  if (indAudio) { indAudio.pause(); indAudio = null; }
+  indAudio = new Audio(url);
+  indAudio.play().catch(() => {});
+});
 
 // ── service worker ────────────────────────────────────────────────
 if ("serviceWorker" in navigator) {
