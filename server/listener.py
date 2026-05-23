@@ -165,6 +165,12 @@ class Listener:
             "-vn",
             "-ac", "1",
             "-ar", "48000",
+            # Nest cam audio comes in at ~-40 dB peak with a 5.6 kHz hard
+            # cutoff (16 kHz codec). Without boost BirdNET can't separate
+            # birds from the noise floor — verified on a known raven loop.
+            # dynaudnorm gives clean per-window gain without pumping, then
+            # a flat 10 dB lift brings the typical peak to ~-3 dB.
+            "-af", "dynaudnorm=g=7:p=0.95:m=20,volume=10dB",
             "-c:a", "pcm_s16le",
             "-f", "segment",
             "-segment_time", str(self.chunk_secs),
@@ -299,6 +305,12 @@ class Listener:
             lon=self.lon,
             date=dt.datetime.now(),
             min_conf=self.min_conf,
+            # The Nest cam strips the high harmonics that BirdNET keys on
+            # for high confidence. sensitivity=1.5 (the model's max) and
+            # a very permissive filter_threshold let real-but-quiet birds
+            # land above min_conf. Tighten if false positives dominate.
+            sensitivity=1.5,
+            filter_threshold=0.001,
         )
         rec.analyze()
         embeddings: list[dict] = []
