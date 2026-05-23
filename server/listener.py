@@ -226,13 +226,16 @@ class Listener:
         self.stats["chunks_processed"] += 1
         self.stats["last_chunk_at"] = dt.datetime.utcnow().isoformat() + "Z"
 
-        detections = await asyncio.get_running_loop().run_in_executor(
+        analysis = await asyncio.get_running_loop().run_in_executor(
             None, self._analyze_sync, path
         )
+        detections = analysis.get("detections") or []
+        embeddings = analysis.get("embeddings") or []
         if not detections:
             return
 
-        # Best per species.
+        # Best per species — keep the detection itself so we can pick the
+        # matching embedding window for that highest-confidence vocalization.
         best: dict[str, dict] = {}
         for d in detections:
             sci = d.get("scientific_name") or ""
@@ -254,6 +257,7 @@ class Listener:
             except Exception as exc:
                 log.warning("enrich failed for %s: %s", sci, exc)
 
+            embedding = _pick_embedding(embeddings, d.get("start_s", 0.0))
             event = {
                 "type": "detection",
                 "ts": dt.datetime.utcnow().isoformat() + "Z",
@@ -265,6 +269,8 @@ class Listener:
                 "territory": enrich.get("territory"),
                 "indigenous": enrich.get("indigenous"),
                 "source": "listener",
+                # internal — stripped before broadcast in persist_cb
+                "_embedding": embedding,
             }
             if self.persist_cb is not None:
                 try:
@@ -280,8 +286,11 @@ class Listener:
                      d.get("common_name"), d["confidence"] * 100,
                      self.broadcaster.subscriber_count())
 
-    def _analyze_sync(self, path: Path) -> list[dict]:
-        """Run BirdNET on a single chunk. Sync — called via run_in_executor."""
+    def _analyze_sync(self, path: Path) -> dict:
+        """Run BirdNET on a single chunk plus extract per-window embeddings.
+        Sync — called via run_in_executor. Embeddings are the 1024-dim
+        GLOBAL_AVG_POOL layer activations (the layer immediately before the
+        classifier head); they're what we cluster on for individual ID."""
         from birdnetlib import Recording
         rec = Recording(
             self.analyzer,
@@ -292,7 +301,13 @@ class Listener:
             min_conf=self.min_conf,
         )
         rec.analyze()
-        return [
+        embeddings: list[dict] = []
+        try:
+            rec.extract_embeddings()
+            embeddings = rec.embeddings_list or []
+        except Exception as exc:
+            log.warning("embedding extraction failed on %s: %s", path.name, exc)
+        detections = [
             {
                 "common_name": h.get("common_name") or h.get("common") or "",
                 "scientific_name": h.get("scientific_name") or h.get("scientific") or "",
@@ -302,3 +317,19 @@ class Listener:
             }
             for h in (rec.detections or [])
         ]
+        return {"detections": detections, "embeddings": embeddings}
+
+
+def _pick_embedding(embeddings: list[dict], detection_start_s: float) -> Optional[list]:
+    """Match a detection's start_time to the embedding window that contains
+    it. BirdNET emits 3-second windows that align with the detection times,
+    so this is usually an exact match. Falls back to the closest window
+    when the timing doesn't line up (rare — happens when the model uses a
+    different stride than the embedding extractor)."""
+    if not embeddings:
+        return None
+    for w in embeddings:
+        if abs(w["start_time"] - detection_start_s) < 0.5:
+            return w["embeddings"]
+    closest = min(embeddings, key=lambda w: abs(w["start_time"] - detection_start_s))
+    return closest["embeddings"]

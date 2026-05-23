@@ -63,6 +63,26 @@ DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 # Single Analyzer instance — model load is slow, ~5s cold.
 analyzer = Analyzer()
 
+# birdnetlib's bundled extract_embeddings() fails on the stock interpreter
+# because intermediate tensors aren't preserved. Rebuild the interpreter
+# with experimental_preserve_all_tensors=True so we can pull the 1024-dim
+# embedding tensor (the GLOBAL_AVG_POOL layer immediately before the 6522-
+# class softmax). This is what we cluster on for individual-bird ID.
+try:
+    import tensorflow as _tf
+    analyzer.interpreter = _tf.lite.Interpreter(
+        model_path=analyzer.model_path,
+        experimental_preserve_all_tensors=True,
+    )
+    analyzer.interpreter.allocate_tensors()
+except Exception as _e:
+    import logging as _logging
+    _logging.getLogger("birdnet").warning(
+        "embeddings disabled — could not rebuild interpreter: %s", _e
+    )
+
+INDIVIDUAL_THRESHOLD = float(os.getenv("INDIVIDUAL_COSINE_THRESHOLD", "0.12"))
+
 anthropic_client: Optional[Anthropic] = None
 if ANTHROPIC_API_KEY:
     anthropic_client = Anthropic(api_key=ANTHROPIC_API_KEY)
@@ -79,6 +99,73 @@ async def _enrich_for_listener(scientific_name: str, lat: float, lon: float) -> 
     languages = (territory or {}).get("languages_at_location") or None
     indigenous = lookup_names(scientific_name, languages)
     return {"territory": territory, "indigenous": indigenous}
+
+
+def _assign_individual(scientific_name: str, embedding: "np.ndarray") -> str:
+    """Online cosine-distance clustering for individual-bird ID.
+
+    For each new detection of a species we already have embeddings for,
+    find the nearest existing centroid. If cosine distance < threshold, the
+    detection joins that cluster (same bird). Otherwise mint a new cluster.
+
+    Centroid here is the mean of all embeddings stored for a given
+    individual_id — recomputed on the fly from sqlite. This is fine for
+    hundreds to a few thousand detections per species; if it ever gets
+    expensive we can cache centroids in a separate table.
+
+    The threshold is an empirical knob — INDIVIDUAL_COSINE_THRESHOLD env
+    var, default 0.12. Tighter = more clusters (over-splits); looser = more
+    lumping (under-splits). 0.10–0.15 is reasonable for BirdNET embeddings;
+    needs to be tuned against actual cottage data over a few days."""
+    import numpy as _np
+    species_slug = "".join(c if c.isalnum() else "-" for c in scientific_name.lower()).strip("-")
+    vec = _np.asarray(embedding, dtype="float32")
+    vec_norm = vec / (_np.linalg.norm(vec) + 1e-9)
+
+    with db() as conn:
+        rows = conn.execute(
+            "SELECT individual_id, embedding FROM detections "
+            "WHERE top_sci = ? AND embedding IS NOT NULL AND individual_id IS NOT NULL",
+            (scientific_name,),
+        ).fetchall()
+
+    if not rows:
+        return f"{species_slug}-001"
+
+    # Bucket existing embeddings by individual_id, compute per-cluster centroid.
+    buckets: dict[str, list] = {}
+    for r in rows:
+        try:
+            v = _np.frombuffer(r["embedding"], dtype="float32")
+            if v.shape[0] != vec.shape[0]:
+                continue
+        except Exception:
+            continue
+        buckets.setdefault(r["individual_id"], []).append(v)
+
+    best_id, best_dist = None, 1.0
+    for ind_id, vecs in buckets.items():
+        centroid = _np.mean(_np.stack(vecs), axis=0)
+        centroid /= (_np.linalg.norm(centroid) + 1e-9)
+        dist = 1.0 - float(_np.dot(vec_norm, centroid))
+        if dist < best_dist:
+            best_dist = dist
+            best_id = ind_id
+
+    if best_id is not None and best_dist < INDIVIDUAL_THRESHOLD:
+        return best_id
+
+    # Mint a new cluster numbered after the existing count.
+    existing_nums = []
+    prefix = f"{species_slug}-"
+    for ind_id in buckets.keys():
+        if ind_id.startswith(prefix):
+            try:
+                existing_nums.append(int(ind_id[len(prefix):]))
+            except ValueError:
+                pass
+    next_num = (max(existing_nums) + 1) if existing_nums else 1
+    return f"{prefix}{next_num:03d}"
 
 
 async def _persist_listener_detection(event: dict, chunk_path: Path) -> Optional[str]:
@@ -107,12 +194,30 @@ async def _persist_listener_detection(event: dict, chunk_path: Path) -> Optional
         "scientific_name": sci,
         "confidence": conf,
     }]
+
+    # Individual ID — only when we got an embedding from the chunk processor.
+    embedding_blob = None
+    individual_id = None
+    emb = event.get("_embedding")
+    if emb is not None:
+        try:
+            import numpy as _np
+            arr = _np.asarray(emb, dtype="float32")
+            embedding_blob = arr.tobytes()
+            individual_id = _assign_individual(sci, arr)
+        except Exception as exc:
+            import logging as _logging
+            _logging.getLogger("birdnet").warning(
+                "individual id failed for %s: %s", sci, exc
+            )
+
     with db() as conn:
         conn.execute(
             "INSERT INTO detections "
             "(id, ts, lat, lon, week, min_conf, audio_path, top_label, top_sci, "
-            " top_conf, hits_json, source, territory_json, indigenous_json) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            " top_conf, hits_json, source, territory_json, indigenous_json, "
+            " embedding, individual_id) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 det_id,
                 event.get("ts") or (dt.datetime.utcnow().isoformat() + "Z"),
@@ -128,9 +233,16 @@ async def _persist_listener_detection(event: dict, chunk_path: Path) -> Optional
                 "listener",
                 json.dumps(event.get("territory")) if event.get("territory") else None,
                 json.dumps(event.get("indigenous")) if event.get("indigenous") else None,
+                embedding_blob,
+                individual_id,
             ),
         )
     event["id"] = det_id
+    if individual_id:
+        event["individual_id"] = individual_id
+    # Strip the embedding before broadcasting — clients don't need the
+    # 1024-float blob, and it bloats every WebSocket frame.
+    event.pop("_embedding", None)
     return f"/audio/{dest.name}" if audio_rel else None
 
 
@@ -168,6 +280,7 @@ def init_db() -> None:
             ("territory_json", "TEXT"),
             ("indigenous_json", "TEXT"),
             ("embedding", "BLOB"),
+            ("individual_id", "TEXT"),
         ]:
             try:
                 conn.execute(f"ALTER TABLE detections ADD COLUMN {col} {decl}")
@@ -176,6 +289,10 @@ def init_db() -> None:
         conn.execute(
             "CREATE INDEX IF NOT EXISTS detections_source_ts "
             "ON detections(source, ts DESC)"
+        )
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS detections_sci_ind "
+            "ON detections(top_sci, individual_id)"
         )
 
 
@@ -466,8 +583,8 @@ def catalog(date: Optional[str] = None, source: Optional[str] = None) -> dict:
     # ts is stored as ISO8601 with trailing Z, so a prefix LIKE matches the day.
     params: list = [f"{day}%"]
     sql = (
-        "SELECT id, ts, top_label, top_sci, top_conf, source, indigenous_json "
-        "FROM detections WHERE ts LIKE ?"
+        "SELECT id, ts, top_label, top_sci, top_conf, source, indigenous_json, "
+        "individual_id FROM detections WHERE ts LIKE ?"
     )
     if source:
         sql += " AND source = ?"
@@ -499,18 +616,27 @@ def catalog(date: Optional[str] = None, source: Optional[str] = None) -> dict:
                 "indigenous_phonetic": (first_name or {}).get("phonetic") if first_name else None,
                 "indigenous_language": (lang_meta or {}).get("english_name") if lang_meta else None,
                 "indigenous_endonym": (lang_meta or {}).get("endonym") if lang_meta else None,
+                "individuals": set(),
             }
             by_sci[sci] = entry
         entry["last_heard"] = r["ts"]
         entry["count"] += 1
         if (r["top_conf"] or 0) > entry["max_conf"]:
             entry["max_conf"] = float(r["top_conf"] or 0)
+        if r.get("individual_id"):
+            entry["individuals"].add(r["individual_id"])
 
+    for s in by_sci.values():
+        ids = sorted(s.pop("individuals"))
+        s["individual_ids"] = ids
+        s["individual_count"] = len(ids)
     species = sorted(by_sci.values(), key=lambda x: x["last_heard"], reverse=True)
+    total_individuals = sum(s["individual_count"] for s in species)
     return {
         "date": day,
         "species_count": len(species),
         "detection_count": len(rows),
+        "individual_count": total_individuals,
         "species": species,
     }
 

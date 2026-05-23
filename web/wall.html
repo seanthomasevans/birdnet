@@ -182,6 +182,14 @@
   }
   .today .latin { font-style: italic; }
   .today .now { color: var(--accent); opacity: 0.95; font-style: normal; }
+  .today .count {
+    font-family: ui-monospace, "SF Mono", monospace;
+    font-style: normal;
+    font-size: 0.85em;
+    color: var(--accent);
+    opacity: 0.65;
+    margin-left: 0.25em;
+  }
 
   .footer {
     padding: 3vh 4vw;
@@ -357,7 +365,14 @@
         const cls = s.indigenous_name ? "" : "latin";
         const now = currentSci && s.scientific_name === currentSci ? " now" : "";
         const klass = (cls + now).trim();
-        return klass ? `<span class="${klass}">${word}</span>` : `<span>${word}</span>`;
+        // Individual count: when we have ≥1 voiceprint-identified bird for
+        // this species, append "×N" so the wall surfaces the population
+        // estimate. Skip when we have no clustered individuals yet
+        // (embeddings not extracted or just one detection).
+        const n = s.individual_count || 0;
+        const tail = n > 0 ? `<span class="count">×${n}</span>` : "";
+        const inner = `<span>${word}</span>${tail}`;
+        return klass ? `<span class="${klass}">${inner}</span>` : inner;
       });
       $today.innerHTML = parts.join(`<span class="sep">·</span>`);
     } catch {}
