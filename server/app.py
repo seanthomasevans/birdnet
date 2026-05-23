@@ -600,9 +600,12 @@ def catalog(date: Optional[str] = None, source: Optional[str] = None) -> dict:
             continue
         entry = by_sci.get(sci)
         if entry is None:
-            ind = json.loads(r["indigenous_json"]) if r.get("indigenous_json") else None
-            first_name = (ind or {}).get("names", [None])[0] if ind and ind.get("available") else None
-            languages = (ind or {}).get("languages") or {}
+            # Look up Indigenous names directly from the curated dataset so the
+            # earliest row's empty indigenous_json (tap rows pre-dating the
+            # feature) doesn't shadow data on later rows for the same species.
+            ind = lookup_names(sci)
+            first_name = (ind.get("names") or [None])[0] if ind.get("available") else None
+            languages = ind.get("languages") or {}
             lang_key = (first_name or {}).get("language") if first_name else None
             lang_meta = languages.get(lang_key) if lang_key else None
             entry = {
