@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>BirdNET · wall</title>
+<style>
+  :root {
+    --bg: #000;
+    --ink: #f4f1ea;
+    --accent: #6ee3a9;
+    --dim: #5a6b62;
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+    user-select: none;
+    cursor: none;
+  }
+  body {
+    display: grid;
+    grid-template-rows: 1fr auto;
+  }
+  .stage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 6vh 4vw;
+    position: relative;
+    text-align: center;
+  }
+  .lang {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    font-size: clamp(0.7rem, 1.1vw, 1rem);
+    text-transform: uppercase;
+    letter-spacing: 0.35em;
+    color: var(--accent);
+    opacity: 0;
+    margin-bottom: 2.5vh;
+    transition: opacity 1.2s ease;
+  }
+  .lang .endonym {
+    text-transform: none;
+    letter-spacing: 0.02em;
+    font-style: italic;
+    opacity: 0.75;
+  }
+  .word {
+    font-size: clamp(4rem, 18vw, 24rem);
+    line-height: 0.95;
+    font-weight: 400;
+    letter-spacing: -0.015em;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 1.6s ease, transform 1.6s ease;
+    word-break: break-word;
+    max-width: 95vw;
+  }
+  .phon {
+    font-family: ui-monospace, "SF Mono", monospace;
+    font-size: clamp(1rem, 1.8vw, 1.8rem);
+    color: var(--accent);
+    opacity: 0;
+    margin-top: 3vh;
+    letter-spacing: 0;
+    transition: opacity 1.4s ease 0.4s;
+  }
+  .literal {
+    font-style: italic;
+    font-size: clamp(0.9rem, 1.4vw, 1.4rem);
+    color: var(--ink);
+    opacity: 0;
+    margin-top: 2.2vh;
+    max-width: 60ch;
+    line-height: 1.4;
+    transition: opacity 1.6s ease 0.8s;
+  }
+  .common {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    font-size: clamp(0.85rem, 1.2vw, 1.2rem);
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: 0.25em;
+    opacity: 0;
+    margin-top: 6vh;
+    transition: opacity 2s ease 1.2s;
+  }
+  .stage.show .lang,
+  .stage.show .word,
+  .stage.show .phon,
+  .stage.show .literal,
+  .stage.show .common {
+    opacity: 1;
+  }
+  .stage.show .word { transform: translateY(0); }
+  .stage.show .lang { opacity: 0.95; }
+  .stage.show .phon { opacity: 0.7; }
+  .stage.show .literal { opacity: 0.65; }
+  .stage.show .common { opacity: 0.55; }
+
+  .stage.idle .idle-line {
+    opacity: 0.18;
+  }
+  .idle-line {
+    font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-size: clamp(0.8rem, 1vw, 1rem);
+    text-transform: uppercase;
+    letter-spacing: 0.4em;
+    color: var(--ink);
+    opacity: 0;
+    transition: opacity 2s ease;
+  }
+
+  .footer {
+    padding: 3vh 4vw;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2vw;
+    border-top: 1px solid rgba(110, 227, 169, 0.08);
+  }
+  .territory {
+    font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-size: clamp(0.7rem, 0.9vw, 0.95rem);
+    color: var(--dim);
+    letter-spacing: 0.06em;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    flex: 1;
+    font-style: italic;
+  }
+  .meta {
+    font-family: ui-monospace, "SF Mono", monospace;
+    font-size: clamp(0.65rem, 0.8vw, 0.85rem);
+    color: var(--dim);
+    opacity: 0.5;
+    white-space: nowrap;
+  }
+  .meta .conn-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--dim);
+    margin-right: 8px;
+    vertical-align: middle;
+    transition: background 0.4s ease;
+  }
+  .meta.live .conn-dot { background: var(--accent); }
+
+  /* Subtle breath — a slow pulse on the word so the room feels alive
+     even in the silence between detections. */
+  .stage.show .word {
+    animation: breathe 9s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.82; }
+  }
+</style>
+</head>
+<body>
+  <div class="stage idle" id="stage">
+    <div class="lang"><span id="lang-label">—</span> <span class="endonym" id="lang-endonym"></span></div>
+    <div class="word" id="word">—</div>
+    <div class="phon" id="phon"></div>
+    <div class="literal" id="literal"></div>
+    <div class="common" id="common"></div>
+    <div class="idle-line" id="idle-line">listening</div>
+  </div>
+  <div class="footer">
+    <div class="territory" id="territory">connecting…</div>
+    <div class="meta"><span class="conn-dot"></span><span id="meta-text">offline</span></div>
+  </div>
+
+<script type="module">
+  const params = new URLSearchParams(location.search);
+  const DEFAULT_SERVER = "https://seans-macbook-pro-m3.tail65b106.ts.net:8443";
+  const server = params.get("server") || localStorage.getItem("birdnet.server") || DEFAULT_SERVER;
+  const wsUrl = server.replace(/^http/, "ws") + "/stream/events";
+
+  const $stage = document.getElementById("stage");
+  const $word = document.getElementById("word");
+  const $phon = document.getElementById("phon");
+  const $literal = document.getElementById("literal");
+  const $common = document.getElementById("common");
+  const $langLabel = document.getElementById("lang-label");
+  const $langEndonym = document.getElementById("lang-endonym");
+  const $territory = document.getElementById("territory");
+  const $meta = document.querySelector(".meta");
+  const $metaText = document.getElementById("meta-text");
+  const $idleLine = document.getElementById("idle-line");
+
+  let idleTimer;
+  function showIdle() {
+    $stage.classList.remove("show");
+    $stage.classList.add("idle");
+  }
+
+  function show(event) {
+    clearTimeout(idleTimer);
+    const ind = event.indigenous;
+    const terr = event.territory;
+    // Prefer first Indigenous name if available — that's the whole point of
+    // the wall. Fall back to common name only if we have nothing else.
+    const name = ind && ind.available && ind.names && ind.names[0];
+
+    if (name) {
+      const langMeta = (ind.languages || {})[name.language] || {};
+      $langLabel.textContent = langMeta.english_name || name.language || "";
+      $langEndonym.textContent = langMeta.endonym ? `(${langMeta.endonym})` : "";
+      $word.textContent = name.word || "";
+      $phon.textContent = name.phonetic ? `[ ${name.phonetic} ]` : "";
+      $literal.textContent = name.literal ? `“${name.literal}”` : (name.notes || "");
+    } else {
+      // No Indigenous name in dataset — show the common name large, but mark
+      // the language line as "unknown to this dataset" to keep the invitation
+      // to contribute visible. We never silently fill the gap with Linnaean.
+      $langLabel.textContent = "no verified name in dataset";
+      $langEndonym.textContent = "";
+      $word.textContent = event.common_name || "";
+      $phon.textContent = "";
+      $literal.textContent = "";
+    }
+    const common = event.common_name ? `${event.common_name} · ${Math.round((event.confidence || 0) * 100)}%` : "";
+    $common.textContent = common;
+
+    if (terr && terr.available && terr.territories && terr.territories.length) {
+      $territory.textContent = terr.territories.map((t) => t.name).join(" · ");
+    }
+
+    $stage.classList.remove("idle");
+    // Re-trigger entry animation by toggling.
+    $stage.classList.remove("show");
+    void $stage.offsetWidth;
+    $stage.classList.add("show");
+
+    // After 90s without a new event, fade back to the listening state so
+    // the wall isn't holding a 20-minute-old name forever.
+    idleTimer = setTimeout(showIdle, 90_000);
+  }
+
+  function setConn(state) {
+    $meta.classList.toggle("live", state === "live");
+    $metaText.textContent = state;
+  }
+
+  let ws;
+  let backoff = 1000;
+  function connect() {
+    setConn("connecting");
+    try {
+      ws = new WebSocket(wsUrl);
+    } catch (e) {
+      setConn("ws error");
+      setTimeout(connect, backoff);
+      backoff = Math.min(backoff * 2, 30_000);
+      return;
+    }
+    ws.onopen = () => { setConn("live"); backoff = 1000; };
+    ws.onmessage = (m) => {
+      try {
+        const event = JSON.parse(m.data);
+        if (event.type === "detection") show(event);
+      } catch {}
+    };
+    ws.onclose = () => {
+      setConn("reconnecting");
+      setTimeout(connect, backoff);
+      backoff = Math.min(backoff * 2, 30_000);
+    };
+    ws.onerror = () => { try { ws.close(); } catch {} };
+  }
+  connect();
+
+  // Click anywhere to enter fullscreen — projector setups need this.
+  document.addEventListener("click", () => {
+    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+  });
+</script>
+</body>
+</html>

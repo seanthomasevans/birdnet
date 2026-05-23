@@ -29,13 +29,14 @@ from anthropic import Anthropic
 from birdnetlib import Recording
 from birdnetlib.analyzer import Analyzer
 from dotenv import load_dotenv
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from server.indigenous import dataset_coverage, lookup_names, lookup_territory
+from server.listener import Broadcaster, Listener
 
 ROOT = Path(__file__).resolve().parent.parent
 WEB_DIR = ROOT / "web"
@@ -50,6 +51,12 @@ EBIRD_API_KEY = os.getenv("EBIRD_API_KEY", "").strip()
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "").strip()
 DEFAULT_MIN_CONF = float(os.getenv("BIRDNET_MIN_CONFIDENCE", "0.15"))
 
+LISTENER_RTSP_URL = os.getenv("LISTENER_RTSP_URL", "").strip()
+LISTENER_LAT = float(os.getenv("LISTENER_LAT", "44.92"))
+LISTENER_LON = float(os.getenv("LISTENER_LON", "-79.37"))
+LISTENER_CHUNK_SECS = int(os.getenv("LISTENER_CHUNK_SECS", "10"))
+LISTENER_MIN_CONF = float(os.getenv("LISTENER_MIN_CONF", "0.4"))
+
 AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
@@ -59,6 +66,19 @@ analyzer = Analyzer()
 anthropic_client: Optional[Anthropic] = None
 if ANTHROPIC_API_KEY:
     anthropic_client = Anthropic(api_key=ANTHROPIC_API_KEY)
+
+# In-process pubsub for the continuous-listener wall projection.
+broadcaster = Broadcaster()
+listener: Optional[Listener] = None
+
+
+async def _enrich_for_listener(scientific_name: str, lat: float, lon: float) -> dict:
+    """Lighter enrich for the listener loop — no Claude call (too slow,
+    too costly to run on every detection). Just territory + Indigenous names."""
+    territory = await lookup_territory(lat, lon)
+    languages = (territory or {}).get("languages_at_location") or None
+    indigenous = lookup_names(scientific_name, languages)
+    return {"territory": territory, "indigenous": indigenous}
 
 
 def db() -> sqlite3.Connection:
@@ -103,6 +123,30 @@ app.add_middleware(
 )
 
 
+@app.on_event("startup")
+async def _start_listener() -> None:
+    global listener
+    if not LISTENER_RTSP_URL:
+        return
+    listener = Listener(
+        rtsp_url=LISTENER_RTSP_URL,
+        lat=LISTENER_LAT,
+        lon=LISTENER_LON,
+        chunk_secs=LISTENER_CHUNK_SECS,
+        min_conf=LISTENER_MIN_CONF,
+        analyzer=analyzer,
+        broadcaster=broadcaster,
+        enrich_cb=_enrich_for_listener,
+    )
+    await listener.start()
+
+
+@app.on_event("shutdown")
+async def _stop_listener() -> None:
+    if listener:
+        await listener.stop()
+
+
 @app.get("/healthz")
 def healthz() -> dict:
     return {
@@ -111,8 +155,56 @@ def healthz() -> dict:
         "ebird": bool(EBIRD_API_KEY),
         "model_loaded": analyzer is not None,
         "indigenous_dataset": dataset_coverage(),
+        "listener": {
+            "configured": bool(LISTENER_RTSP_URL),
+            "running": bool(listener and listener.task and not listener.task.done()),
+            "subscribers": broadcaster.subscriber_count(),
+            "stats": listener.stats if listener else None,
+        },
         "ts": dt.datetime.utcnow().isoformat() + "Z",
     }
+
+
+@app.post("/stream/test")
+async def stream_test(scientific_name: str = "Cyanocitta cristata") -> dict:
+    """Fire a synthetic detection through the broadcaster — visually validate
+    the /wall viewer without waiting on a real bird at the cottage."""
+    territory = await lookup_territory(LISTENER_LAT, LISTENER_LON)
+    languages = (territory or {}).get("languages_at_location") or None
+    indigenous = lookup_names(scientific_name, languages)
+    event = {
+        "type": "detection",
+        "ts": dt.datetime.utcnow().isoformat() + "Z",
+        "common_name": (indigenous.get("common_name") or scientific_name),
+        "scientific_name": scientific_name,
+        "confidence": 0.95,
+        "lat": LISTENER_LAT,
+        "lon": LISTENER_LON,
+        "territory": territory,
+        "indigenous": indigenous,
+        "synthetic": True,
+    }
+    await broadcaster.publish(event)
+    return {"ok": True, "subscribers": broadcaster.subscriber_count()}
+
+
+@app.websocket("/stream/events")
+async def stream_events(ws: WebSocket) -> None:
+    """Live detection feed for the /wall projection viewer."""
+    await ws.accept()
+    q = broadcaster.subscribe()
+    try:
+        # Send the most recent detection on connect so a freshly-opened
+        # wall isn't blank for the first few minutes.
+        if listener and listener.stats.get("last_detection"):
+            await ws.send_json(listener.stats["last_detection"])
+        while True:
+            event = await q.get()
+            await ws.send_json(event)
+    except WebSocketDisconnect:
+        pass
+    finally:
+        broadcaster.unsubscribe(q)
 
 
 @app.get("/territory")
