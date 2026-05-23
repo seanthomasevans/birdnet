@@ -141,6 +141,46 @@
   .stage.show .sci { opacity: 0.55; }
   .stage.show .common { opacity: 0.4; }
 
+  /* No-name state: we have a detection but the dataset has no cited
+     Indigenous name for this species. Hide the hero word entirely (a bare
+     dash reads as a broken composition) and let the territory carry the
+     visual weight, with a small italic invitation line below. */
+  .stage.no-name .word,
+  .stage.no-name .phon,
+  .stage.no-name .literal,
+  .stage.no-name .lang {
+    display: none;
+  }
+  .stage.no-name .terr {
+    font-size: clamp(2rem, 5vw, 5rem);
+    margin-top: 0;
+    line-height: 1.2;
+    max-width: 90vw;
+    opacity: 0.95;
+  }
+  .stage.no-name .terr .label {
+    font-size: clamp(0.75rem, 1vw, 1rem);
+    margin-bottom: 2.5vh;
+  }
+  .stage.no-name .invite {
+    opacity: 0.55;
+  }
+  .invite {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-style: italic;
+    font-size: clamp(1rem, 1.6vw, 1.6rem);
+    color: var(--ink);
+    opacity: 0;
+    margin-top: 4vh;
+    max-width: 56ch;
+    line-height: 1.45;
+    transition: opacity 1.8s ease 1.2s;
+    display: none;
+  }
+  .stage.no-name .invite {
+    display: block;
+  }
+
   .stage.idle .idle-line {
     opacity: 0.18;
   }
@@ -211,6 +251,7 @@
     <div class="phon" id="phon"></div>
     <div class="literal" id="literal"></div>
     <div class="terr" id="terr"><span class="label">on the land of</span><span id="terr-names"></span></div>
+    <div class="invite" id="invite">a name in this language has not yet been recorded in this dataset</div>
     <div class="sci" id="sci"></div>
     <div class="common" id="common"></div>
     <div class="idle-line" id="idle-line">listening</div>
@@ -255,6 +296,7 @@
     // the wall. Fall back to common name only if we have nothing else.
     const name = ind && ind.available && ind.names && ind.names[0];
 
+    $stage.classList.remove("no-name");
     if (name) {
       const langMeta = (ind.languages || {})[name.language] || {};
       $langLabel.textContent = langMeta.english_name || name.language || "";
@@ -263,9 +305,12 @@
       $phon.textContent = name.phonetic ? `[ ${name.phonetic} ]` : "";
       $literal.textContent = name.literal ? `“${name.literal}”` : (name.notes || "");
     } else {
-      $langLabel.textContent = "no verified name in dataset";
+      // No cited Indigenous name. Let the territory carry the composition;
+      // hide the hero word so we don't ship a dangling em-dash.
+      $stage.classList.add("no-name");
+      $langLabel.textContent = "";
       $langEndonym.textContent = "";
-      $word.textContent = "—";
+      $word.textContent = "";
       $phon.textContent = "";
       $literal.textContent = "";
     }
