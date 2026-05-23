@@ -25,6 +25,23 @@
     <section id="record-pane" class="pane active">
       <button type="button" class="status geo-pill" id="geo-status" aria-label="Location status — tap to retry">acquiring location…</button>
 
+      <div id="geo-help" class="geo-help" hidden>
+        <p>iOS Safari sometimes locks in <em>denied</em> per-site. To reset:</p>
+        <ol>
+          <li>Tap the <strong>aA</strong> button in the address bar → <strong>Website Settings</strong> → set Location to <strong>Ask</strong> or <strong>Allow</strong>.</li>
+          <li>Or use a <strong>manual location</strong> below — works even with geo off.</li>
+        </ol>
+        <div class="manual-geo">
+          <input type="text" id="manual-coords" placeholder="lat, lon  (e.g. 44.92, -79.37)" autocomplete="off" spellcheck="false" />
+          <button type="button" id="manual-geo-set" class="primary-btn">use this location</button>
+        </div>
+        <div class="manual-presets">
+          <button type="button" class="preset" data-lat="44.92" data-lon="-79.37">Gravenhurst</button>
+          <button type="button" class="preset" data-lat="43.6532" data-lon="-79.3832">Toronto</button>
+          <button type="button" class="preset" data-lat="43.7" data-lon="-79.4">GTA</button>
+        </div>
+      </div>
+
       <button id="record-btn" class="record-btn" aria-pressed="false">
         <span class="record-label">tap to listen</span>
         <span class="record-sub" id="record-sub">10s capture</span>

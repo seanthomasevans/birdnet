@@ -525,3 +525,55 @@ h2 { font-size: 1.05rem; margin: 0 0 14px; letter-spacing: 0.02em; }
   color: var(--fg-dim);
   opacity: 0.75;
 }
+
+/* Manual-location fallback for when iOS Safari has locked the per-site
+   geolocation permission to denied and no amount of retrying recovers it. */
+.geo-help {
+  margin: 6px 18px 14px;
+  padding: 12px 14px;
+  background: var(--bg-elev);
+  border: 1px solid var(--bg-elev-2);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  color: var(--fg-dim);
+}
+.geo-help p { margin: 0 0 8px; }
+.geo-help ol { margin: 0 0 12px; padding-left: 20px; }
+.geo-help li { margin: 4px 0; }
+.geo-help strong { color: var(--fg); font-weight: 600; }
+.geo-help em { color: var(--warn); font-style: normal; }
+.manual-geo {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.manual-geo input {
+  flex: 1;
+  padding: 10px 12px;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--bg-elev-2);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-family: -apple-system, BlinkMacSystemFont, monospace;
+}
+.manual-geo .primary-btn {
+  padding: 10px 14px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.manual-presets {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.manual-presets .preset {
+  padding: 6px 12px;
+  background: var(--bg);
+  color: var(--accent);
+  border: 1px solid var(--accent-dim);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.manual-presets .preset:active { background: var(--bg-elev-2); }

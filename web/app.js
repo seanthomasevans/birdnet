@@ -15,6 +15,22 @@ const settings = {
 };
 
 let geo = null;          // { lat, lon, week }
+let geoSource = null;    // 'gps' | 'manual' | 'cached'
+
+// Restore last known location so the app still works when iOS Safari locks
+// the per-site permission to "denied" and no amount of tapping recovers it.
+function loadCachedGeo() {
+  try {
+    const raw = localStorage.getItem("birdnet.geo");
+    if (!raw) return null;
+    const c = JSON.parse(raw);
+    if (typeof c.lat === "number" && typeof c.lon === "number") return c;
+  } catch {}
+  return null;
+}
+function cacheGeo(g) {
+  try { localStorage.setItem("birdnet.geo", JSON.stringify({ lat: g.lat, lon: g.lon, ts: Date.now() })); } catch {}
+}
 let mediaStream = null;
 let recorder = null;
 let recordingChunks = [];
@@ -73,37 +89,54 @@ function isoWeek(date) {
   return Math.ceil(((d - yearStart) / 86400000 + 1) / 7);
 }
 
+function paintGeo() {
+  const $geo = document.getElementById("geo-status");
+  if (!geo) return;
+  $geo.classList.remove("warn", "denied", "acquiring");
+  $geo.classList.add("ok");
+  const tag = geoSource === "manual" ? "manual" : geoSource === "cached" ? "cached" : `±${Math.round(geo.accuracy || 0)}m`;
+  $geo.textContent = `${geo.lat.toFixed(4)}, ${geo.lon.toFixed(4)} · wk ${geo.week} · ${tag}`;
+}
+
+function setGeo({ lat, lon, accuracy, source }) {
+  geo = { lat, lon, week: isoWeek(new Date()), accuracy: accuracy || 0 };
+  geoSource = source;
+  if (source === "gps" || source === "manual") cacheGeo(geo);
+  paintGeo();
+  document.getElementById("geo-help").hidden = true;
+}
+
 function requestGeo({ silent = false } = {}) {
   const $geo = document.getElementById("geo-status");
   if (!navigator.geolocation) {
     $geo.textContent = "no geolocation API · tap to retry";
     $geo.classList.add("warn");
+    document.getElementById("geo-help").hidden = false;
     return Promise.resolve(null);
   }
   if (!silent) {
     $geo.textContent = "acquiring location…";
-    $geo.classList.remove("warn", "denied");
+    $geo.classList.remove("warn", "denied", "ok");
     $geo.classList.add("acquiring");
   }
   return new Promise((resolve) => {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        geo = {
-          lat: pos.coords.latitude,
-          lon: pos.coords.longitude,
-          week: isoWeek(new Date()),
-          accuracy: pos.coords.accuracy,
-        };
-        $geo.classList.remove("warn", "denied", "acquiring");
-        $geo.classList.add("ok");
-        $geo.textContent = `${geo.lat.toFixed(4)}, ${geo.lon.toFixed(4)} · wk ${geo.week} · ±${Math.round(geo.accuracy)}m`;
+        setGeo({ lat: pos.coords.latitude, lon: pos.coords.longitude, accuracy: pos.coords.accuracy, source: "gps" });
         resolve(geo);
       },
       (err) => {
-        const reason = err && err.code === 1 ? "permission denied" : err && err.code === 3 ? "timed out" : (err && err.message) || "unavailable";
+        const denied = err && err.code === 1;
+        const reason = denied ? "permission denied" : err && err.code === 3 ? "timed out" : (err && err.message) || "unavailable";
         $geo.classList.remove("ok", "acquiring");
-        $geo.classList.add(err && err.code === 1 ? "denied" : "warn");
-        $geo.textContent = `location ${reason} · tap to retry`;
+        // If we already have a cached/manual geo, keep it visible — geo stays usable.
+        if (geo) {
+          paintGeo();
+        } else {
+          $geo.classList.add(denied ? "denied" : "warn");
+          $geo.textContent = `location ${reason} · tap for options`;
+        }
+        document.getElementById("geo-help").hidden = false;
         resolve(null);
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 }
@@ -111,29 +144,63 @@ function requestGeo({ silent = false } = {}) {
   });
 }
 
-// Tap the geo pill to retry — covers the iOS case where user denied on first
-// prompt and granted later via Settings, so we never see a fresh permission
-// event. Also covers reconnect after airplane-mode toggles.
-document.getElementById("geo-status").addEventListener("click", () => requestGeo());
-
-// On page load: if Permissions API is available, only attempt geolocation
-// when state is 'granted' or 'prompt'. Avoids spamming a denied user.
-if (navigator.permissions && navigator.permissions.query) {
-  navigator.permissions.query({ name: "geolocation" }).then((p) => {
-    if (p.state === "denied") {
-      const $g = document.getElementById("geo-status");
-      $g.classList.add("denied");
-      $g.textContent = "location denied · tap to retry (then grant in browser)";
-    } else {
-      requestGeo();
-    }
-    p.addEventListener && p.addEventListener("change", () => {
-      if (p.state === "granted") requestGeo();
-    });
-  }).catch(() => requestGeo());
-} else {
+// Tap the geo pill: retry GPS AND surface the manual-entry help panel so the
+// user always has a way forward — even if iOS Safari has locked the per-site
+// permission to denied with no path to recovery via the OS settings alone.
+document.getElementById("geo-status").addEventListener("click", () => {
+  document.getElementById("geo-help").hidden = false;
   requestGeo();
-}
+});
+
+// Manual entry: parse "lat, lon" and apply.
+document.getElementById("manual-geo-set").addEventListener("click", () => {
+  const raw = document.getElementById("manual-coords").value.trim();
+  const m = raw.match(/(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/);
+  if (!m) { setStatus("enter coords as 'lat, lon'", "error"); return; }
+  const lat = parseFloat(m[1]), lon = parseFloat(m[2]);
+  if (Math.abs(lat) > 90 || Math.abs(lon) > 180) { setStatus("coords out of range", "error"); return; }
+  setGeo({ lat, lon, accuracy: 0, source: "manual" });
+  setStatus("location set manually");
+});
+
+document.querySelectorAll(".manual-presets .preset").forEach((b) => {
+  b.addEventListener("click", () => {
+    const lat = parseFloat(b.dataset.lat), lon = parseFloat(b.dataset.lon);
+    setGeo({ lat, lon, accuracy: 0, source: "manual" });
+    setStatus(`location set: ${b.textContent.trim()}`);
+  });
+});
+
+// Boot: try GPS, but also restore any cached coords so the app is usable
+// from the first frame even if GPS is denied / slow / unavailable.
+(function bootGeo() {
+  const cached = loadCachedGeo();
+  if (cached) {
+    geo = { ...cached, week: isoWeek(new Date()), accuracy: 0 };
+    geoSource = "cached";
+    paintGeo();
+  }
+  const tryGps = () => requestGeo();
+  if (navigator.permissions && navigator.permissions.query) {
+    navigator.permissions.query({ name: "geolocation" }).then((p) => {
+      if (p.state === "denied") {
+        if (!cached) {
+          const $g = document.getElementById("geo-status");
+          $g.classList.add("denied");
+          $g.textContent = "location denied · tap for options";
+        }
+        document.getElementById("geo-help").hidden = false;
+      } else {
+        tryGps();
+      }
+      p.addEventListener && p.addEventListener("change", () => {
+        if (p.state === "granted") tryGps();
+      });
+    }).catch(tryGps);
+  } else {
+    tryGps();
+  }
+})();
 
 // ── recording ─────────────────────────────────────────────────────
 const $btn = document.getElementById("record-btn");
