@@ -1,5 +1,5 @@
 // Minimal SW: cache the app shell only. Audio/API requests bypass the cache.
-const CACHE = "birdnet-v10";
+const CACHE = "birdnet-v11";
 const SHELL = ["./", "./index.html", "./styles.css", "./app.js", "./manifest.json"];
 
 self.addEventListener("install", (e) => {

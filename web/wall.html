@@ -9,7 +9,7 @@
     --bg: #000;
     --ink: #f4f1ea;
     --accent: #6ee3a9;
-    --dim: #5a6b62;
+    --dim: #8a9d92;
   }
   html, body {
     margin: 0;
@@ -53,7 +53,7 @@
     opacity: 0.75;
   }
   .word {
-    font-size: clamp(4rem, 18vw, 24rem);
+    font-size: clamp(4rem, 14vw, 18rem);
     line-height: 0.95;
     font-weight: 400;
     letter-spacing: -0.015em;
@@ -116,12 +116,12 @@
   }
   .common {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
-    font-size: clamp(0.75rem, 1vw, 1rem);
-    color: var(--dim);
+    font-size: clamp(1rem, 1.4vw, 1.5rem);
+    color: var(--ink);
     text-transform: uppercase;
-    letter-spacing: 0.25em;
+    letter-spacing: 0.22em;
     opacity: 0;
-    margin-top: 1.4vh;
+    margin-top: 2vh;
     transition: opacity 2s ease 1.4s;
   }
   .stage.show .lang,
@@ -136,10 +136,10 @@
   .stage.show .word { transform: translateY(0); }
   .stage.show .lang { opacity: 0.95; }
   .stage.show .phon { opacity: 0.7; }
-  .stage.show .literal { opacity: 0.65; }
-  .stage.show .terr { opacity: 0.85; }
-  .stage.show .sci { opacity: 0.55; }
-  .stage.show .common { opacity: 0.4; }
+  .stage.show .literal { opacity: 0.6; }
+  .stage.show .terr { display: none; }
+  .stage.show .sci { opacity: 0.5; }
+  .stage.show .common { opacity: 0.78; }
 
   .stage.idle .idle-line {
     opacity: 0.18;
@@ -297,7 +297,9 @@
     $langEndonym.textContent = langMeta.endonym ? `(${langMeta.endonym})` : "";
     $word.textContent = name.word || "";
     $phon.textContent = name.phonetic ? `[ ${name.phonetic} ]` : "";
-    $literal.textContent = name.literal ? `“${name.literal}”` : (name.notes || "");
+    // Literal translation only — drop notes from the hero; they belong in
+    // the catalog popup, not on a projection wall. Keeps the stack tight.
+    $literal.textContent = name.literal ? `“${name.literal}”` : "";
 
     // Territory: forefront, inside the hero block. Renders as
     // "ON THE LAND OF / Mississauga · Anishinabewaki" in serif italic.
@@ -310,8 +312,9 @@
 
     // Latin: secondary, italic serif.
     $sci.textContent = event.scientific_name || "";
-    // English: tertiary, smallest, most subdued.
-    $common.textContent = event.common_name ? `${event.common_name} · ${Math.round((event.confidence || 0) * 100)}%` : "";
+    // English: legible but secondary. Drop the confidence percentage from
+    // the hero — it's wall furniture, not information the room needs.
+    $common.textContent = event.common_name || "";
 
     $stage.classList.remove("idle");
     // Re-trigger entry animation by toggling.
@@ -360,19 +363,23 @@
         $today.innerHTML = "";
         return;
       }
+      // If the only species in the catalog is the one currently on the
+      // hero, hide the strip — the diary becomes redundant repetition.
+      const others = c.species.filter((s) => s.scientific_name !== currentSci);
+      if (others.length === 0) {
+        $today.innerHTML = "";
+        return;
+      }
       const parts = c.species.map((s) => {
-        const word = s.indigenous_name || s.scientific_name;
-        const cls = s.indigenous_name ? "" : "latin";
-        const now = currentSci && s.scientific_name === currentSci ? " now" : "";
-        const klass = (cls + now).trim();
-        // Individual count: when we have ≥1 voiceprint-identified bird for
-        // this species, append "×N" so the wall surfaces the population
-        // estimate. Skip when we have no clustered individuals yet
-        // (embeddings not extracted or just one detection).
+        const word = s.indigenous_name;
+        const now = currentSci && s.scientific_name === currentSci ? "now" : "";
+        // Individual count: when we have ≥2 voiceprint-clustered birds for
+        // this species, append "×N". Drop the badge for solo birds (just
+        // visual noise — implicit one bird per name).
         const n = s.individual_count || 0;
-        const tail = n > 0 ? `<span class="count">×${n}</span>` : "";
+        const tail = n > 1 ? `<span class="count">×${n}</span>` : "";
         const inner = `<span>${word}</span>${tail}`;
-        return klass ? `<span class="${klass}">${inner}</span>` : inner;
+        return now ? `<span class="now">${inner}</span>` : inner;
       });
       $today.innerHTML = parts.join(`<span class="sep">·</span>`);
     } catch {}

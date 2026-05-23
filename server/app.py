@@ -630,7 +630,12 @@ def catalog(date: Optional[str] = None, source: Optional[str] = None) -> dict:
         ids = sorted(s.pop("individuals"))
         s["individual_ids"] = ids
         s["individual_count"] = len(ids)
-    species = sorted(by_sci.values(), key=lambda x: x["last_heard"], reverse=True)
+    # The wall only renders species we have a cited Indigenous name for —
+    # everything else is a Latin-italic fallback that reads as clutter on a
+    # projector. Filter the catalog the same way so the today-strip and the
+    # wall hero stay in lockstep.
+    species = [s for s in by_sci.values() if s.get("indigenous_name")]
+    species.sort(key=lambda x: x["last_heard"], reverse=True)
     total_individuals = sum(s["individual_count"] for s in species)
     return {
         "date": day,
