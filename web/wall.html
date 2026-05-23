@@ -292,28 +292,20 @@
     clearTimeout(idleTimer);
     const ind = event.indigenous;
     const terr = event.territory;
-    // Prefer first Indigenous name if available — that's the whole point of
-    // the wall. Fall back to common name only if we have nothing else.
     const name = ind && ind.available && ind.names && ind.names[0];
 
-    $stage.classList.remove("no-name");
-    if (name) {
-      const langMeta = (ind.languages || {})[name.language] || {};
-      $langLabel.textContent = langMeta.english_name || name.language || "";
-      $langEndonym.textContent = langMeta.endonym ? `(${langMeta.endonym})` : "";
-      $word.textContent = name.word || "";
-      $phon.textContent = name.phonetic ? `[ ${name.phonetic} ]` : "";
-      $literal.textContent = name.literal ? `“${name.literal}”` : (name.notes || "");
-    } else {
-      // No cited Indigenous name. Let the territory carry the composition;
-      // hide the hero word so we don't ship a dangling em-dash.
-      $stage.classList.add("no-name");
-      $langLabel.textContent = "";
-      $langEndonym.textContent = "";
-      $word.textContent = "";
-      $phon.textContent = "";
-      $literal.textContent = "";
-    }
+    // If we don't have a cited Indigenous name, drop the event silently.
+    // The wall is for the names — no name, no display. Keep whatever is on
+    // screen (or the idle "listening" state) until a species we have a
+    // name for is detected.
+    if (!name) return;
+
+    const langMeta = (ind.languages || {})[name.language] || {};
+    $langLabel.textContent = langMeta.english_name || name.language || "";
+    $langEndonym.textContent = langMeta.endonym ? `(${langMeta.endonym})` : "";
+    $word.textContent = name.word || "";
+    $phon.textContent = name.phonetic ? `[ ${name.phonetic} ]` : "";
+    $literal.textContent = name.literal ? `“${name.literal}”` : (name.notes || "");
 
     // Territory: forefront, inside the hero block. Renders as
     // "ON THE LAND OF / Mississauga · Anishinabewaki" in serif italic.
