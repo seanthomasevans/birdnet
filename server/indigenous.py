@@ -30,7 +30,12 @@ from typing import Optional
 import httpx
 
 DATA_PATH = Path(__file__).parent / "data" / "indigenous_names.json"
-NATIVELAND_API_KEY = os.getenv("NATIVELAND_API_KEY", "").strip()
+
+
+def _nativeland_key() -> str:
+    # Lazy read — .env is loaded by app.py *after* this module is imported,
+    # so we can't snapshot the key at module load time.
+    return os.getenv("NATIVELAND_API_KEY", "").strip()
 
 with DATA_PATH.open("r", encoding="utf-8") as f:
     DATA = json.load(f)
@@ -73,6 +78,24 @@ NATIVE_LAND_LANGUAGE_MAP = {
 
 def _normalize(s: str) -> str:
     return (s or "").strip().lower().replace(" ", "-").replace("_", "-")
+
+
+def _map_language(slug: str, name: str = "") -> Optional[str]:
+    """Map a Native Land slug/name to our language code.
+
+    Native Land's slugs are often compound — e.g. `mississauga-eastern-anishinaabe-ojibwa`.
+    We try exact lookup first, then substring matching against any keyword in our map.
+    """
+    for candidate in (_normalize(slug), _normalize(name)):
+        if not candidate:
+            continue
+        if candidate in NATIVE_LAND_LANGUAGE_MAP:
+            return NATIVE_LAND_LANGUAGE_MAP[candidate]
+        # Substring pass — match any map key that appears as a token in the slug.
+        for key, code in NATIVE_LAND_LANGUAGE_MAP.items():
+            if key in candidate:
+                return code
+    return None
 
 
 # Coarse regional fallback when Native Land Digital API key is not present.
@@ -118,7 +141,7 @@ async def lookup_territory(lat: float, lon: float, timeout: float = 8.0) -> dict
     NATIVELAND_API_KEY is configured. Otherwise falls back to a coarse
     regional bucket so the feature degrades gracefully — and clearly says so.
     """
-    if not NATIVELAND_API_KEY:
+    if not _nativeland_key():
         return _regional_fallback(lat, lon)
 
     base = "https://native-land.ca/api/index.php"
@@ -136,7 +159,7 @@ async def lookup_territory(lat: float, lon: float, timeout: float = 8.0) -> dict
             follow_redirects=True,
             headers={"User-Agent": "BirdNET-PWA/0.1 (https://github.com/seanthomasevans/birdnet)"},
         ) as client:
-            params_common = {"key": NATIVELAND_API_KEY, "position": f"{lat},{lon}"}
+            params_common = {"key": _nativeland_key(), "position": f"{lat},{lon}"}
             r_t = await client.get(base, params={**params_common, "maps": "territories"})
             territories_raw = r_t.json() if r_t.status_code == 200 else []
             r_l = await client.get(base, params={**params_common, "maps": "languages"})
@@ -156,7 +179,7 @@ async def lookup_territory(lat: float, lon: float, timeout: float = 8.0) -> dict
         slug = props.get("Slug") or props.get("slug") or _normalize(name)
         desc_url = props.get("description") or ""
         out["territories"].append({"name": name, "slug": slug, "url": desc_url or f"https://native-land.ca/maps/territories/{slug}"})
-        mapped = NATIVE_LAND_LANGUAGE_MAP.get(_normalize(slug)) or NATIVE_LAND_LANGUAGE_MAP.get(_normalize(name))
+        mapped = _map_language(slug, name)
         if mapped:
             lang_codes.add(mapped)
 
@@ -164,7 +187,7 @@ async def lookup_territory(lat: float, lon: float, timeout: float = 8.0) -> dict
         props = poly.get("properties") or {}
         name = props.get("Name") or props.get("name") or ""
         slug = props.get("Slug") or props.get("slug") or ""
-        mapped = NATIVE_LAND_LANGUAGE_MAP.get(_normalize(slug)) or NATIVE_LAND_LANGUAGE_MAP.get(_normalize(name))
+        mapped = _map_language(slug, name)
         if mapped:
             lang_codes.add(mapped)
 
