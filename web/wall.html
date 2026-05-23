@@ -92,12 +92,17 @@
   .hdr-land { grid-column: 1 / 10; }
   .hdr-status { grid-column: 10 / 13; text-align: right; }
 
-  .hdr-land .label { display: block; margin-bottom: 0.9vh; }
+  .hdr-land .label {
+    display: block;
+    margin-bottom: 1.1vh;
+    font-size: clamp(0.82rem, 1vw, 1.1rem);
+    letter-spacing: 0.4em;
+  }
   .land-names {
     font-style: italic;
-    font-size: clamp(1rem, 1.45vw, 1.65rem);
+    font-size: clamp(1.3rem, 1.85vw, 2.05rem);
     color: var(--ink);
-    opacity: 0.86;
+    opacity: 0.9;
     line-height: 1.25;
     letter-spacing: 0.005em;
   }
@@ -178,7 +183,7 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 1.6vh;
+    gap: 3.4vh;
   }
   .word {
     --word-size: 10vw;
@@ -194,9 +199,10 @@
   }
   .phon {
     font-family: var(--mono);
-    font-size: clamp(1rem, 1.45vw, 1.6rem);
+    font-size: clamp(1.1rem, 1.65vw, 1.85rem);
+    font-weight: 400;
     color: var(--accent);
-    letter-spacing: 0.01em;
+    letter-spacing: 0.02em;
     opacity: 0;
     transition: opacity 1.2s ease 0.25s;
   }
@@ -228,18 +234,19 @@
   }
   .common {
     font-family: var(--serif);
-    font-size: clamp(1.2rem, 1.7vw, 1.9rem);
+    font-size: clamp(1.4rem, 1.95vw, 2.2rem);
+    font-weight: 500;
     color: var(--ink);
-    line-height: 1.2;
+    line-height: 1.15;
     letter-spacing: 0.005em;
   }
   .sci {
     font-family: var(--serif);
     font-style: italic;
-    font-size: clamp(0.9rem, 1.15vw, 1.25rem);
+    font-size: clamp(1.1rem, 1.45vw, 1.6rem);
     color: var(--ink);
-    opacity: 0.55;
-    margin-top: 0.4vh;
+    opacity: 0.78;
+    margin-top: 0.6vh;
     letter-spacing: 0.005em;
   }
 
@@ -281,39 +288,49 @@
   .diary-body  { grid-column: 3 / 13; }
 
   .today {
-    font-family: var(--serif);
-    font-style: italic;
-    font-size: clamp(0.95rem, 1.2vw, 1.35rem);
-    color: var(--ink);
-    opacity: 0.55;
-    line-height: 1.4;
+    display: flex;
+    gap: 2.4vw;
     overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    align-items: baseline;
   }
   .today:empty::before {
     content: "—";
     opacity: 0.3;
-    font-style: normal;
+    color: var(--ink);
   }
-  .today .sep {
-    color: var(--accent);
-    opacity: 0.4;
-    margin: 0 0.55em;
-    font-style: normal;
+  .entry {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 0.3vh;
   }
-  .today .now {
-    color: var(--accent);
-    opacity: 1;
-    font-style: normal;
+  .entry-ind {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: clamp(1rem, 1.3vw, 1.45rem);
+    color: var(--ink);
+    opacity: 0.72;
+    line-height: 1.1;
+    white-space: nowrap;
   }
-  .today .count {
+  .entry-eng {
+    font-family: var(--sans);
+    font-size: clamp(0.65rem, 0.78vw, 0.88rem);
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    color: var(--ink);
+    opacity: 0.42;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+  .entry.now .entry-ind { color: var(--accent); opacity: 1; }
+  .entry.now .entry-eng { color: var(--accent); opacity: 0.75; }
+  .entry-eng .count {
     font-family: var(--mono);
-    font-style: normal;
-    font-size: 0.78em;
-    color: var(--accent);
-    opacity: 0.7;
-    margin-left: 0.3em;
+    text-transform: none;
+    font-size: 0.95em;
+    margin-left: 0.4em;
+    opacity: 0.85;
     letter-spacing: 0.04em;
   }
 </style>
@@ -469,14 +486,17 @@
       const c = await r.json();
       if (!c.species || !c.species.length) { $today.innerHTML = ""; return; }
       const parts = c.species.map((s) => {
-        const word = s.indigenous_name;
+        const ind = s.indigenous_name || "";
+        const eng = s.common_name || "";
         const isNow = currentSci && s.scientific_name === currentSci;
         const n = s.individual_count || 0;
-        const tail = n > 1 ? `<span class="count">×${n}</span>` : "";
-        const inner = `<span>${word}</span>${tail}`;
-        return isNow ? `<span class="now">${inner}</span>` : inner;
+        const tail = n > 1 ? ` <span class="count">×${n}</span>` : "";
+        return `<div class="entry${isNow ? " now" : ""}">`
+          + `<div class="entry-ind">${ind}</div>`
+          + `<div class="entry-eng">${eng}${tail}</div>`
+          + `</div>`;
       });
-      $today.innerHTML = parts.join(`<span class="sep">·</span>`);
+      $today.innerHTML = parts.join("");
     } catch {}
   }
   loadToday();
