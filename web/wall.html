@@ -53,14 +53,18 @@
     opacity: 0.75;
   }
   .word {
-    font-size: clamp(4rem, 14vw, 18rem);
+    /* fitWord() sets --word-size live so long endonyms (e.g.
+       gijigijigaaneshiinh, 19 chars) shrink to fit on one line instead
+       of wrapping with a 3-character orphan. */
+    --word-size: 14vw;
+    font-size: var(--word-size);
     line-height: 0.95;
     font-weight: 400;
     letter-spacing: -0.015em;
     opacity: 0;
     transform: translateY(20px);
     transition: opacity 1.6s ease, transform 1.6s ease;
-    word-break: break-word;
+    white-space: nowrap;
     max-width: 95vw;
   }
   .phon {
@@ -281,6 +285,24 @@
 
   const $today = document.getElementById("today");
 
+  // Shrink the hero word until it fits on a single line. Starts at the
+  // typographic-target 14vw and binary-searches down to a 4vw floor.
+  // Two RAFs ensure textContent has actually laid out before we measure.
+  function fitWord(el) {
+    el.style.setProperty("--word-size", "14vw");
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const max = window.innerWidth * 0.92;
+      let lo = 4, hi = 14;
+      for (let i = 0; i < 12 && hi - lo > 0.25; i++) {
+        const mid = (lo + hi) / 2;
+        el.style.setProperty("--word-size", mid + "vw");
+        if (el.scrollWidth <= max) lo = mid; else hi = mid;
+      }
+      el.style.setProperty("--word-size", lo + "vw");
+    }));
+  }
+  window.addEventListener("resize", () => fitWord($word));
+
   function show(event) {
     const ind = event.indigenous;
     const terr = event.territory;
@@ -296,6 +318,7 @@
     $langLabel.textContent = langMeta.english_name || name.language || "";
     $langEndonym.textContent = langMeta.endonym ? `(${langMeta.endonym})` : "";
     $word.textContent = name.word || "";
+    fitWord($word);
     $phon.textContent = name.phonetic ? `[ ${name.phonetic} ]` : "";
     // Literal translation only — drop notes from the hero; they belong in
     // the catalog popup, not on a projection wall. Keeps the stack tight.
