@@ -410,6 +410,39 @@
   loadToday();
   setInterval(() => loadToday(), 60_000);
 
+  // Bootstrap the hero from /catalog on load so a page refresh doesn't
+  // leave the wall idle until the next bird fires. Synthesizes an event
+  // shape matching what the WS broadcast sends.
+  async function bootstrapHero() {
+    try {
+      const r = await fetch(`${server}/catalog?source=listener`);
+      const c = await r.json();
+      const latest = (c.species || [])[0];
+      if (!latest || !latest.indigenous_name) return;
+      const lang = latest.indigenous_language && latest.indigenous_endonym
+        ? { english_name: latest.indigenous_language, endonym: latest.indigenous_endonym }
+        : {};
+      const langKey = lang.english_name ? lang.english_name.toLowerCase().split(/\s|\//)[0] : "lang";
+      show({
+        scientific_name: latest.scientific_name,
+        common_name: latest.common_name,
+        indigenous: {
+          available: true,
+          names: [{
+            language: langKey,
+            word: latest.indigenous_name,
+            phonetic: latest.indigenous_phonetic,
+            literal: null,
+          }],
+          languages: { [langKey]: lang },
+        },
+        territory: null,
+      });
+      loadToday(latest.scientific_name);
+    } catch {}
+  }
+  bootstrapHero();
+
   let ws;
   let backoff = 1000;
   function connect() {
