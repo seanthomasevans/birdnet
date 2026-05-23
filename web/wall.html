@@ -82,20 +82,54 @@
     line-height: 1.4;
     transition: opacity 1.6s ease 0.8s;
   }
+  .terr {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: clamp(1.1rem, 2.2vw, 2.4rem);
+    color: var(--ink);
+    font-style: italic;
+    line-height: 1.35;
+    max-width: 85vw;
+    opacity: 0;
+    margin-top: 4vh;
+    transition: opacity 1.6s ease 0.6s;
+  }
+  .terr .label {
+    display: block;
+    font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-size: clamp(0.65rem, 0.85vw, 0.85rem);
+    font-style: normal;
+    text-transform: uppercase;
+    letter-spacing: 0.35em;
+    color: var(--accent);
+    margin-bottom: 1.2vh;
+    opacity: 0.85;
+  }
+  .sci {
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-style: italic;
+    font-size: clamp(1rem, 1.8vw, 1.8rem);
+    color: var(--ink);
+    opacity: 0;
+    margin-top: 5vh;
+    letter-spacing: 0.01em;
+    transition: opacity 2s ease 1.0s;
+  }
   .common {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
-    font-size: clamp(0.85rem, 1.2vw, 1.2rem);
+    font-size: clamp(0.75rem, 1vw, 1rem);
     color: var(--dim);
     text-transform: uppercase;
     letter-spacing: 0.25em;
     opacity: 0;
-    margin-top: 6vh;
-    transition: opacity 2s ease 1.2s;
+    margin-top: 1.4vh;
+    transition: opacity 2s ease 1.4s;
   }
   .stage.show .lang,
   .stage.show .word,
   .stage.show .phon,
   .stage.show .literal,
+  .stage.show .terr,
+  .stage.show .sci,
   .stage.show .common {
     opacity: 1;
   }
@@ -103,7 +137,9 @@
   .stage.show .lang { opacity: 0.95; }
   .stage.show .phon { opacity: 0.7; }
   .stage.show .literal { opacity: 0.65; }
-  .stage.show .common { opacity: 0.55; }
+  .stage.show .terr { opacity: 0.85; }
+  .stage.show .sci { opacity: 0.55; }
+  .stage.show .common { opacity: 0.4; }
 
   .stage.idle .idle-line {
     opacity: 0.18;
@@ -127,10 +163,11 @@
     border-top: 1px solid rgba(110, 227, 169, 0.08);
   }
   .territory {
-    font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-    font-size: clamp(0.7rem, 0.9vw, 0.95rem);
-    color: var(--dim);
-    letter-spacing: 0.06em;
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-size: clamp(0.8rem, 1vw, 1.05rem);
+    color: var(--ink);
+    opacity: 0.45;
+    letter-spacing: 0.04em;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
@@ -173,11 +210,13 @@
     <div class="word" id="word">—</div>
     <div class="phon" id="phon"></div>
     <div class="literal" id="literal"></div>
+    <div class="terr" id="terr"><span class="label">on the land of</span><span id="terr-names"></span></div>
+    <div class="sci" id="sci"></div>
     <div class="common" id="common"></div>
     <div class="idle-line" id="idle-line">listening</div>
   </div>
   <div class="footer">
-    <div class="territory" id="territory">connecting…</div>
+    <div class="territory" id="territory-foot"></div>
     <div class="meta"><span class="conn-dot"></span><span id="meta-text">offline</span></div>
   </div>
 
@@ -191,10 +230,13 @@
   const $word = document.getElementById("word");
   const $phon = document.getElementById("phon");
   const $literal = document.getElementById("literal");
+  const $terr = document.getElementById("terr");
+  const $terrNames = document.getElementById("terr-names");
+  const $sci = document.getElementById("sci");
   const $common = document.getElementById("common");
   const $langLabel = document.getElementById("lang-label");
   const $langEndonym = document.getElementById("lang-endonym");
-  const $territory = document.getElementById("territory");
+  const $territoryFoot = document.getElementById("territory-foot");
   const $meta = document.querySelector(".meta");
   const $metaText = document.getElementById("meta-text");
   const $idleLine = document.getElementById("idle-line");
@@ -221,21 +263,26 @@
       $phon.textContent = name.phonetic ? `[ ${name.phonetic} ]` : "";
       $literal.textContent = name.literal ? `“${name.literal}”` : (name.notes || "");
     } else {
-      // No Indigenous name in dataset — show the common name large, but mark
-      // the language line as "unknown to this dataset" to keep the invitation
-      // to contribute visible. We never silently fill the gap with Linnaean.
       $langLabel.textContent = "no verified name in dataset";
       $langEndonym.textContent = "";
-      $word.textContent = event.common_name || "";
+      $word.textContent = "—";
       $phon.textContent = "";
       $literal.textContent = "";
     }
-    const common = event.common_name ? `${event.common_name} · ${Math.round((event.confidence || 0) * 100)}%` : "";
-    $common.textContent = common;
 
+    // Territory: forefront, inside the hero block. Renders as
+    // "ON THE LAND OF / Mississauga · Anishinabewaki" in serif italic.
     if (terr && terr.available && terr.territories && terr.territories.length) {
-      $territory.textContent = terr.territories.map((t) => t.name).join(" · ");
+      $terrNames.textContent = terr.territories.map((t) => t.name).join(" · ");
+      $terr.style.display = "";
+    } else {
+      $terr.style.display = "none";
     }
+
+    // Latin: secondary, italic serif.
+    $sci.textContent = event.scientific_name || "";
+    // English: tertiary, smallest, most subdued.
+    $common.textContent = event.common_name ? `${event.common_name} · ${Math.round((event.confidence || 0) * 100)}%` : "";
 
     $stage.classList.remove("idle");
     // Re-trigger entry animation by toggling.
@@ -252,6 +299,25 @@
     $meta.classList.toggle("live", state === "live");
     $metaText.textContent = state;
   }
+
+  // Persistent territory in the footer — the listener stands somewhere
+  // whether or not a bird is calling. Fetch once on boot.
+  async function loadFooterTerritory() {
+    try {
+      const r = await fetch(`${server}/healthz`);
+      const h = await r.json();
+      const lat = h.listener?.stats?.last_detection?.lat;
+      const lon = h.listener?.stats?.last_detection?.lon;
+      // Even without a detection, the listener has a configured lat/lon. Fall
+      // back to a synthetic /territory call against the cottage coords.
+      const tlat = lat ?? 44.92, tlon = lon ?? -79.37;
+      const t = await (await fetch(`${server}/territory?lat=${tlat}&lon=${tlon}`)).json();
+      if (t.territories && t.territories.length) {
+        $territoryFoot.textContent = "on the land of " + t.territories.map((x) => x.name).join(" · ");
+      }
+    } catch {}
+  }
+  loadFooterTerritory();
 
   let ws;
   let backoff = 1000;
