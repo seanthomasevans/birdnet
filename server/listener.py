@@ -92,6 +92,7 @@ class Listener:
         analyzer: Any,
         broadcaster: Broadcaster,
         enrich_cb: Callable[[str, float, float], Awaitable[dict]],
+        persist_cb: Optional[Callable[[dict, Path], Awaitable[Optional[str]]]] = None,
     ) -> None:
         self.rtsp_url = rtsp_url
         self.lat = lat
@@ -101,6 +102,11 @@ class Listener:
         self.analyzer = analyzer
         self.broadcaster = broadcaster
         self.enrich_cb = enrich_cb
+        # Called after a detection passes the cooldown gate. Should copy the
+        # chunk audio to durable storage and write a sqlite row. Returns the
+        # stored audio path (relative to the project root) for inclusion in
+        # the broadcast event, or None if persist failed.
+        self.persist_cb = persist_cb
         self.tmpdir: Optional[Path] = None
         self.ffmpeg: Optional[asyncio.subprocess.Process] = None
         self.task: Optional[asyncio.Task] = None
@@ -258,7 +264,15 @@ class Listener:
                 "lon": self.lon,
                 "territory": enrich.get("territory"),
                 "indigenous": enrich.get("indigenous"),
+                "source": "listener",
             }
+            if self.persist_cb is not None:
+                try:
+                    audio_url = await self.persist_cb(event, path)
+                    if audio_url:
+                        event["audio_url"] = audio_url
+                except Exception as exc:
+                    log.warning("persist failed for %s: %s", sci, exc)
             self.stats["detections"] += 1
             self.stats["last_detection"] = event
             await self.broadcaster.publish(event)

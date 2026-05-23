@@ -81,6 +81,59 @@ async def _enrich_for_listener(scientific_name: str, lat: float, lon: float) -> 
     return {"territory": territory, "indigenous": indigenous}
 
 
+async def _persist_listener_detection(event: dict, chunk_path: Path) -> Optional[str]:
+    """Copy the listener's chunk audio into audio_log/ and write a sqlite row.
+    Returns the relative audio path for inclusion in the broadcast event.
+
+    Catalog history depends on this: every detection that lights up the wall
+    also lands a row in detections{source='listener'} so /catalog/today can
+    reconstruct the day. The raw audio is kept so a later pass can pull
+    BirdNET embeddings for individual identification."""
+    import shutil as _shutil
+    det_id = uuid.uuid4().hex[:12]
+    dest = AUDIO_DIR / f"listener_{det_id}.wav"
+    try:
+        _shutil.copyfile(chunk_path, dest)
+        audio_rel = str(dest.relative_to(ROOT))
+    except Exception:
+        audio_rel = None
+
+    sci = event.get("scientific_name") or ""
+    common = event.get("common_name") or ""
+    conf = float(event.get("confidence") or 0.0)
+    week_val = int(dt.datetime.utcnow().isocalendar().week)
+    hits = [{
+        "common_name": common,
+        "scientific_name": sci,
+        "confidence": conf,
+    }]
+    with db() as conn:
+        conn.execute(
+            "INSERT INTO detections "
+            "(id, ts, lat, lon, week, min_conf, audio_path, top_label, top_sci, "
+            " top_conf, hits_json, source, territory_json, indigenous_json) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                det_id,
+                event.get("ts") or (dt.datetime.utcnow().isoformat() + "Z"),
+                event.get("lat"),
+                event.get("lon"),
+                week_val,
+                LISTENER_MIN_CONF,
+                audio_rel,
+                common,
+                sci,
+                conf,
+                json.dumps(hits),
+                "listener",
+                json.dumps(event.get("territory")) if event.get("territory") else None,
+                json.dumps(event.get("indigenous")) if event.get("indigenous") else None,
+            ),
+        )
+    event["id"] = det_id
+    return f"/audio/{dest.name}" if audio_rel else None
+
+
 def db() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
@@ -106,6 +159,23 @@ def init_db() -> None:
             );
             CREATE INDEX IF NOT EXISTS detections_ts ON detections(ts DESC);
             """
+        )
+        # Additive migrations: new columns get appended in place so an existing
+        # db file from v0.1 keeps working without a rebuild. Each ADD is wrapped
+        # because SQLite raises if the column already exists.
+        for col, decl in [
+            ("source", "TEXT DEFAULT 'tap'"),
+            ("territory_json", "TEXT"),
+            ("indigenous_json", "TEXT"),
+            ("embedding", "BLOB"),
+        ]:
+            try:
+                conn.execute(f"ALTER TABLE detections ADD COLUMN {col} {decl}")
+            except sqlite3.OperationalError:
+                pass
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS detections_source_ts "
+            "ON detections(source, ts DESC)"
         )
 
 
@@ -137,6 +207,7 @@ async def _start_listener() -> None:
         analyzer=analyzer,
         broadcaster=broadcaster,
         enrich_cb=_enrich_for_listener,
+        persist_cb=_persist_listener_detection,
     )
     await listener.start()
 
@@ -166,9 +237,12 @@ def healthz() -> dict:
 
 
 @app.post("/stream/test")
-async def stream_test(scientific_name: str = "Cyanocitta cristata") -> dict:
+async def stream_test(scientific_name: str = "Cyanocitta cristata", persist: bool = False) -> dict:
     """Fire a synthetic detection through the broadcaster — visually validate
-    the /wall viewer without waiting on a real bird at the cottage."""
+    the /wall viewer without waiting on a real bird at the cottage.
+    Pass persist=true to also write a row to the catalog so the today-strip
+    picks it up; otherwise the test event is broadcast-only and the diary
+    stays honest."""
     territory = await lookup_territory(LISTENER_LAT, LISTENER_LON)
     languages = (territory or {}).get("languages_at_location") or None
     indigenous = lookup_names(scientific_name, languages)
@@ -182,10 +256,33 @@ async def stream_test(scientific_name: str = "Cyanocitta cristata") -> dict:
         "lon": LISTENER_LON,
         "territory": territory,
         "indigenous": indigenous,
+        "source": "listener" if persist else "synthetic",
         "synthetic": True,
     }
+    if persist:
+        det_id = uuid.uuid4().hex[:12]
+        week_val = int(dt.datetime.utcnow().isocalendar().week)
+        with db() as conn:
+            conn.execute(
+                "INSERT INTO detections "
+                "(id, ts, lat, lon, week, min_conf, audio_path, top_label, top_sci, "
+                " top_conf, hits_json, source, territory_json, indigenous_json) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    det_id, event["ts"], LISTENER_LAT, LISTENER_LON, week_val,
+                    LISTENER_MIN_CONF, None,
+                    event["common_name"], scientific_name, 0.95,
+                    json.dumps([{"common_name": event["common_name"],
+                                 "scientific_name": scientific_name,
+                                 "confidence": 0.95}]),
+                    "listener",
+                    json.dumps(territory) if territory else None,
+                    json.dumps(indigenous) if indigenous else None,
+                ),
+            )
+        event["id"] = det_id
     await broadcaster.publish(event)
-    return {"ok": True, "subscribers": broadcaster.subscriber_count()}
+    return {"ok": True, "subscribers": broadcaster.subscriber_count(), "persisted": persist}
 
 
 @app.websocket("/stream/events")
@@ -357,6 +454,65 @@ def history(limit: int = 50) -> dict:
             (limit,),
         ).fetchall()
     return {"items": [dict(r) for r in rows], "count": len(rows)}
+
+
+@app.get("/catalog")
+def catalog(date: Optional[str] = None, source: Optional[str] = None) -> dict:
+    """The day's bird catalog. ?date=YYYY-MM-DD (UTC) — defaults to today.
+    ?source=listener|tap to filter. One row per species: first/last heard,
+    count of detections, max confidence, plus the first cited Indigenous
+    name so the wall's today-strip can render the endonym directly."""
+    day = date or dt.datetime.utcnow().date().isoformat()
+    # ts is stored as ISO8601 with trailing Z, so a prefix LIKE matches the day.
+    params: list = [f"{day}%"]
+    sql = (
+        "SELECT id, ts, top_label, top_sci, top_conf, source, indigenous_json "
+        "FROM detections WHERE ts LIKE ?"
+    )
+    if source:
+        sql += " AND source = ?"
+        params.append(source)
+    sql += " ORDER BY ts ASC"
+    with db() as conn:
+        rows = [dict(r) for r in conn.execute(sql, params).fetchall()]
+
+    by_sci: dict[str, dict] = {}
+    for r in rows:
+        sci = r["top_sci"] or ""
+        if not sci:
+            continue
+        entry = by_sci.get(sci)
+        if entry is None:
+            ind = json.loads(r["indigenous_json"]) if r.get("indigenous_json") else None
+            first_name = (ind or {}).get("names", [None])[0] if ind and ind.get("available") else None
+            languages = (ind or {}).get("languages") or {}
+            lang_key = (first_name or {}).get("language") if first_name else None
+            lang_meta = languages.get(lang_key) if lang_key else None
+            entry = {
+                "scientific_name": sci,
+                "common_name": r["top_label"],
+                "first_heard": r["ts"],
+                "last_heard": r["ts"],
+                "count": 0,
+                "max_conf": 0.0,
+                "indigenous_name": (first_name or {}).get("word") if first_name else None,
+                "indigenous_phonetic": (first_name or {}).get("phonetic") if first_name else None,
+                "indigenous_language": (lang_meta or {}).get("english_name") if lang_meta else None,
+                "indigenous_endonym": (lang_meta or {}).get("endonym") if lang_meta else None,
+            }
+            by_sci[sci] = entry
+        entry["last_heard"] = r["ts"]
+        entry["count"] += 1
+        if (r["top_conf"] or 0) > entry["max_conf"]:
+            entry["max_conf"] = float(r["top_conf"] or 0)
+
+    species = sorted(by_sci.values(), key=lambda x: x["last_heard"], reverse=True)
+    return {
+        "date": day,
+        "species_count": len(species),
+        "detection_count": len(rows),
+        "species": species,
+    }
 
 
 @app.get("/detection/{det_id}")

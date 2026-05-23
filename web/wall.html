@@ -25,7 +25,7 @@
   }
   body {
     display: grid;
-    grid-template-rows: 1fr auto;
+    grid-template-rows: 1fr auto auto;
   }
   .stage {
     display: flex;
@@ -141,46 +141,6 @@
   .stage.show .sci { opacity: 0.55; }
   .stage.show .common { opacity: 0.4; }
 
-  /* No-name state: we have a detection but the dataset has no cited
-     Indigenous name for this species. Hide the hero word entirely (a bare
-     dash reads as a broken composition) and let the territory carry the
-     visual weight, with a small italic invitation line below. */
-  .stage.no-name .word,
-  .stage.no-name .phon,
-  .stage.no-name .literal,
-  .stage.no-name .lang {
-    display: none;
-  }
-  .stage.no-name .terr {
-    font-size: clamp(2rem, 5vw, 5rem);
-    margin-top: 0;
-    line-height: 1.2;
-    max-width: 90vw;
-    opacity: 0.95;
-  }
-  .stage.no-name .terr .label {
-    font-size: clamp(0.75rem, 1vw, 1rem);
-    margin-bottom: 2.5vh;
-  }
-  .stage.no-name .invite {
-    opacity: 0.55;
-  }
-  .invite {
-    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-    font-style: italic;
-    font-size: clamp(1rem, 1.6vw, 1.6rem);
-    color: var(--ink);
-    opacity: 0;
-    margin-top: 4vh;
-    max-width: 56ch;
-    line-height: 1.45;
-    transition: opacity 1.8s ease 1.2s;
-    display: none;
-  }
-  .stage.no-name .invite {
-    display: block;
-  }
-
   .stage.idle .idle-line {
     opacity: 0.18;
   }
@@ -193,6 +153,35 @@
     opacity: 0;
     transition: opacity 2s ease;
   }
+
+  /* Today's catalog — the room's listening diary as a single italic line
+     above the footer. Each species appears once, ordered by most recently
+     heard first, rendered as Indigenous endonym when available else Latin. */
+  .today {
+    padding: 1.6vh 4vw 0.6vh;
+    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    font-style: italic;
+    font-size: clamp(0.85rem, 1.05vw, 1.15rem);
+    color: var(--ink);
+    opacity: 0.35;
+    line-height: 1.5;
+    text-align: center;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    max-width: 92vw;
+    margin: 0 auto;
+    transition: opacity 1.2s ease;
+  }
+  .today:empty { display: none; }
+  .today .sep {
+    color: var(--accent);
+    opacity: 0.5;
+    margin: 0 0.6em;
+    font-style: normal;
+  }
+  .today .latin { font-style: italic; }
+  .today .now { color: var(--accent); opacity: 0.95; font-style: normal; }
 
   .footer {
     padding: 3vh 4vw;
@@ -251,11 +240,11 @@
     <div class="phon" id="phon"></div>
     <div class="literal" id="literal"></div>
     <div class="terr" id="terr"><span class="label">on the land of</span><span id="terr-names"></span></div>
-    <div class="invite" id="invite">a name in this language has not yet been recorded in this dataset</div>
     <div class="sci" id="sci"></div>
     <div class="common" id="common"></div>
     <div class="idle-line" id="idle-line">listening</div>
   </div>
+  <div class="today" id="today"></div>
   <div class="footer">
     <div class="territory" id="territory-foot"></div>
     <div class="meta"><span class="conn-dot"></span><span id="meta-text">offline</span></div>
@@ -282,14 +271,9 @@
   const $metaText = document.getElementById("meta-text");
   const $idleLine = document.getElementById("idle-line");
 
-  let idleTimer;
-  function showIdle() {
-    $stage.classList.remove("show");
-    $stage.classList.add("idle");
-  }
+  const $today = document.getElementById("today");
 
   function show(event) {
-    clearTimeout(idleTimer);
     const ind = event.indigenous;
     const terr = event.territory;
     const name = ind && ind.available && ind.names && ind.names[0];
@@ -327,9 +311,10 @@
     void $stage.offsetWidth;
     $stage.classList.add("show");
 
-    // After 90s without a new event, fade back to the listening state so
-    // the wall isn't holding a 20-minute-old name forever.
-    idleTimer = setTimeout(showIdle, 90_000);
+    // The last bird stays up forever. The room's listening diary along
+    // the bottom edge gives the wall continuity between detections —
+    // never decay back to "listening" and lose the moment.
+    loadToday(event.scientific_name);
   }
 
   function setConn(state) {
@@ -355,6 +340,30 @@
     } catch {}
   }
   loadFooterTerritory();
+
+  // Today's catalog — every species heard today, endonym preferred. Highlights
+  // whichever species is currently on the hero (so the eye can trace the
+  // line and find it in the diary). Refresh every 60s and after each event.
+  async function loadToday(currentSci) {
+    try {
+      const r = await fetch(`${server}/catalog?source=listener`);
+      const c = await r.json();
+      if (!c.species || !c.species.length) {
+        $today.innerHTML = "";
+        return;
+      }
+      const parts = c.species.map((s) => {
+        const word = s.indigenous_name || s.scientific_name;
+        const cls = s.indigenous_name ? "" : "latin";
+        const now = currentSci && s.scientific_name === currentSci ? " now" : "";
+        const klass = (cls + now).trim();
+        return klass ? `<span class="${klass}">${word}</span>` : `<span>${word}</span>`;
+      });
+      $today.innerHTML = parts.join(`<span class="sep">·</span>`);
+    } catch {}
+  }
+  loadToday();
+  setInterval(() => loadToday(), 60_000);
 
   let ws;
   let backoff = 1000;
