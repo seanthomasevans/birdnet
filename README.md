@@ -2,6 +2,9 @@
 
 Tap a button on your phone. The Mac listens with Cornell's BirdNET model. Top hits come back with a narrative (Claude) and a regional plausibility check (eBird).
 
+**Live PWA:** https://seanthomasevans.github.io/birdnet/
+**API endpoint (Mac via Tailscale Funnel):** https://seans-macbook-pro-m3.tail65b106.ts.net:8443
+
 ```
 ┌─────────────┐     HTTPS (Tailscale Funnel)     ┌─────────────────┐
 │  phone PWA  │ ───────────────────────────────▶ │   FastAPI       │
