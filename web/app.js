@@ -3,7 +3,9 @@
 // Server URL is configurable in settings (defaults to Tailscale Funnel URL of Sean's Mac).
 // Geolocation is requested up front so BirdNET can filter by region + week.
 
-const DEFAULT_SERVER = "https://seans-macbook-pro-m3.tail65b106.ts.net";
+// :8443 is the dedicated funnel port for the BirdNET API.
+// (:443 is taken by the life-dashboard funnel; we leave that alone.)
+const DEFAULT_SERVER = "https://seans-macbook-pro-m3.tail65b106.ts.net:8443";
 
 const settings = {
   serverUrl: localStorage.getItem("birdnet.server") || DEFAULT_SERVER,
