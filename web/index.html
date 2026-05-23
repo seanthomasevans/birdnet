@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0a1612" />
+  <title>BirdNET — listen and ID</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span class="dot" aria-hidden="true"></span>
+      <span>BirdNET</span>
+    </div>
+    <button id="settings-btn" class="icon-btn" aria-label="Settings">⚙</button>
+  </header>
+
+  <main>
+    <section id="record-pane" class="pane active">
+      <div class="status" id="geo-status">acquiring location…</div>
+
+      <button id="record-btn" class="record-btn" aria-pressed="false">
+        <span class="record-label">tap to listen</span>
+        <span class="record-sub" id="record-sub">10s capture</span>
+      </button>
+
+      <div class="meter" id="meter" hidden>
+        <div class="meter-bar" id="meter-bar"></div>
+        <div class="meter-time" id="meter-time">0.0s</div>
+      </div>
+
+      <div id="status-line" class="status-line"></div>
+
+      <div id="results" class="results" hidden></div>
+    </section>
+
+    <section id="history-pane" class="pane">
+      <h2>recent detections</h2>
+      <div id="history-list" class="history-list"></div>
+    </section>
+
+    <section id="settings-pane" class="pane">
+      <h2>settings</h2>
+      <label>
+        <span>server URL</span>
+        <input id="server-url" type="url" autocomplete="off" spellcheck="false"
+               placeholder="https://seans-macbook-pro-m3.tail65b106.ts.net" />
+      </label>
+      <label>
+        <span>capture seconds (3–30)</span>
+        <input id="capture-secs" type="number" min="3" max="30" step="1" value="10" />
+      </label>
+      <label>
+        <span>min confidence (0–1)</span>
+        <input id="min-conf" type="number" min="0" max="1" step="0.05" value="0.15" />
+      </label>
+      <label class="checkbox">
+        <input id="auto-enrich" type="checkbox" checked />
+        <span>auto-fetch narrative for top hit</span>
+      </label>
+      <button id="save-settings" class="primary-btn">save</button>
+      <div id="health" class="health"></div>
+      <p class="small">audio + metadata are stored on the mac. eBird/Claude enrichment is optional and only fires if you tap a result.</p>
+    </section>
+  </main>
+
+  <nav class="tabs">
+    <button data-pane="record-pane" class="active">listen</button>
+    <button data-pane="history-pane">history</button>
+    <button data-pane="settings-pane">settings</button>
+  </nav>
+
+  <script src="app.js" type="module"></script>
+</body>
+</html>

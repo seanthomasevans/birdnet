@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+db/*.sqlite
+db/*.sqlite-journal
+audio_log/*.wav
+audio_log/*.webm
+audio_log/*.m4a
+audio_log/*.mp3
+audio_log/*.ogg
+audio_log/*.flac
+.DS_Store
+node_modules/
+.pytest_cache/
