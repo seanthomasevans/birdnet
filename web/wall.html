@@ -25,22 +25,66 @@
   }
   body {
     display: grid;
-    grid-template-rows: 1fr auto auto;
+    /* land header / bird stage / today's diary / system meta */
+    grid-template-rows: auto 1fr auto auto;
   }
+
+  /* ─────────────────────────────────────────────────────────────────
+     Land header — always-present acknowledgment of place.
+     "ON THE LAND OF" sits above the territory names in serif italic;
+     the syllabics ride along inside the name string ("Anishinabewaki
+     ᐊᓂᔑᓈᐯᐗᑭ") — that's the "additional spelling" we want to keep. */
+  .land {
+    padding: 4vh 4vw 0;
+    text-align: center;
+    border-bottom: 1px solid rgba(110, 227, 169, 0.06);
+    padding-bottom: 3vh;
+  }
+  .land-label {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    font-size: clamp(0.7rem, 0.95vw, 1rem);
+    text-transform: uppercase;
+    letter-spacing: 0.4em;
+    color: var(--accent);
+    opacity: 0.85;
+    margin-bottom: 1vh;
+  }
+  .land-names {
+    font-style: italic;
+    font-size: clamp(1.1rem, 1.8vw, 2rem);
+    color: var(--ink);
+    opacity: 0.9;
+    line-height: 1.35;
+    letter-spacing: 0.01em;
+    max-width: 88vw;
+    margin: 0 auto;
+  }
+  .land-names .sep {
+    color: var(--accent);
+    opacity: 0.5;
+    font-style: normal;
+    margin: 0 0.55em;
+  }
+  .land:empty, .land-names:empty + * { display: none; }
+
+  /* ─────────────────────────────────────────────────────────────────
+     Bird stage — the hero. Vertical rhythm uses consistent vh units
+     so the stack reads top-to-bottom without competing leadings. */
   .stage {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 6vh 4vw;
+    padding: 4vh 4vw;
     position: relative;
     text-align: center;
+    gap: 0;
   }
   .lang {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
-    font-size: clamp(0.7rem, 1.1vw, 1rem);
+    font-size: clamp(0.7rem, 1vw, 1rem);
     text-transform: uppercase;
-    letter-spacing: 0.35em;
+    letter-spacing: 0.32em;
     color: var(--accent);
     opacity: 0;
     margin-bottom: 2.5vh;
@@ -50,104 +94,88 @@
     text-transform: none;
     letter-spacing: 0.02em;
     font-style: italic;
-    opacity: 0.75;
+    opacity: 0.7;
+    margin-left: 0.4em;
   }
   .word {
-    /* fitWord() sets --word-size live so long endonyms (e.g.
-       gijigijigaaneshiinh, 19 chars) shrink to fit on one line instead
-       of wrapping with a 3-character orphan. */
-    --word-size: 14vw;
+    /* fitWord() sets --word-size live via canvas measureText so any
+       endonym lands on a single line regardless of length. */
+    --word-size: 13vw;
     font-size: var(--word-size);
-    line-height: 0.95;
+    line-height: 1.0;
     font-weight: 400;
     letter-spacing: -0.015em;
     opacity: 0;
     transform: translateY(20px);
-    transition: opacity 1.6s ease, transform 1.6s ease;
+    transition: opacity 1.4s ease, transform 1.4s ease;
     white-space: nowrap;
     max-width: 95vw;
   }
   .phon {
     font-family: ui-monospace, "SF Mono", monospace;
-    font-size: clamp(1rem, 1.8vw, 1.8rem);
+    font-size: clamp(0.95rem, 1.4vw, 1.55rem);
     color: var(--accent);
     opacity: 0;
-    margin-top: 3vh;
+    margin-top: 2.5vh;
     letter-spacing: 0;
-    transition: opacity 1.4s ease 0.4s;
+    transition: opacity 1.2s ease 0.3s;
   }
   .literal {
     font-style: italic;
-    font-size: clamp(0.9rem, 1.4vw, 1.4rem);
+    font-size: clamp(0.85rem, 1.15vw, 1.25rem);
     color: var(--ink);
     opacity: 0;
-    margin-top: 2.2vh;
+    margin-top: 1.8vh;
     max-width: 60ch;
     line-height: 1.4;
-    transition: opacity 1.6s ease 0.8s;
+    transition: opacity 1.4s ease 0.6s;
   }
-  .terr {
-    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-    font-size: clamp(1.1rem, 2.2vw, 2.4rem);
-    color: var(--ink);
-    font-style: italic;
-    line-height: 1.35;
-    max-width: 85vw;
+  .meta-line {
+    /* Latin + English on a single horizontal line — tightens the
+       bottom of the hero stack so it doesn't look like a column of
+       afterthoughts. Separator is an accent dot. */
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 1.2em;
+    margin-top: 3.5vh;
     opacity: 0;
-    margin-top: 4vh;
-    transition: opacity 1.6s ease 0.6s;
+    transition: opacity 1.6s ease 0.9s;
   }
-  .terr .label {
-    display: block;
-    font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
-    font-size: clamp(0.65rem, 0.85vw, 0.85rem);
-    font-style: normal;
-    text-transform: uppercase;
-    letter-spacing: 0.35em;
-    color: var(--accent);
-    margin-bottom: 1.2vh;
-    opacity: 0.85;
+  .meta-line .dot {
+    width: 4px; height: 4px; border-radius: 50%;
+    background: var(--accent); opacity: 0.55;
+    align-self: center;
   }
   .sci {
-    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
     font-style: italic;
-    font-size: clamp(1rem, 1.8vw, 1.8rem);
+    font-size: clamp(0.9rem, 1.3vw, 1.4rem);
     color: var(--ink);
-    opacity: 0;
-    margin-top: 5vh;
+    opacity: 0.55;
     letter-spacing: 0.01em;
-    transition: opacity 2s ease 1.0s;
   }
   .common {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
-    font-size: clamp(1rem, 1.4vw, 1.5rem);
+    font-size: clamp(0.85rem, 1.15vw, 1.3rem);
     color: var(--ink);
     text-transform: uppercase;
     letter-spacing: 0.22em;
-    opacity: 0;
-    margin-top: 2vh;
-    transition: opacity 2s ease 1.4s;
+    opacity: 0.78;
   }
   .stage.show .lang,
   .stage.show .word,
   .stage.show .phon,
   .stage.show .literal,
-  .stage.show .terr,
-  .stage.show .sci,
-  .stage.show .common {
+  .stage.show .meta-line {
     opacity: 1;
   }
   .stage.show .word { transform: translateY(0); }
   .stage.show .lang { opacity: 0.95; }
   .stage.show .phon { opacity: 0.7; }
   .stage.show .literal { opacity: 0.6; }
-  .stage.show .terr { display: none; }
-  .stage.show .sci { opacity: 0.5; }
-  .stage.show .common { opacity: 0.78; }
+  .stage.show .meta-line { opacity: 1; }
 
-  .stage.idle .idle-line {
-    opacity: 0.18;
-  }
+  .stage.idle .idle-line { opacity: 0.18; }
   .idle-line {
     font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
     font-size: clamp(0.8rem, 1vw, 1rem);
@@ -158,16 +186,16 @@
     transition: opacity 2s ease;
   }
 
-  /* Today's catalog — the room's listening diary as a single italic line
-     above the footer. Each species appears once, ordered by most recently
-     heard first, rendered as Indigenous endonym when available else Latin. */
+  /* ─────────────────────────────────────────────────────────────────
+     Today — single italic line of every species heard today.
+     Currently-on-hero entry is highlighted; voiceprint-clustered
+     counts (≥2) tagged with ×N. */
   .today {
-    padding: 1.6vh 4vw 0.6vh;
-    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    padding: 1.4vh 4vw 0.4vh;
     font-style: italic;
     font-size: clamp(0.85rem, 1.05vw, 1.15rem);
     color: var(--ink);
-    opacity: 0.35;
+    opacity: 0.45;
     line-height: 1.5;
     text-align: center;
     overflow: hidden;
@@ -178,13 +206,7 @@
     transition: opacity 1.2s ease;
   }
   .today:empty { display: none; }
-  .today .sep {
-    color: var(--accent);
-    opacity: 0.5;
-    margin: 0 0.6em;
-    font-style: normal;
-  }
-  .today .latin { font-style: italic; }
+  .today .sep { color: var(--accent); opacity: 0.5; margin: 0 0.55em; font-style: normal; }
   .today .now { color: var(--accent); opacity: 0.95; font-style: normal; }
   .today .count {
     font-family: ui-monospace, "SF Mono", monospace;
@@ -195,71 +217,65 @@
     margin-left: 0.25em;
   }
 
+  /* ─────────────────────────────────────────────────────────────────
+     Footer — just system state. Territory moved up into the header. */
   .footer {
-    padding: 3vh 4vw;
+    padding: 1.6vh 4vw;
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     align-items: center;
-    gap: 2vw;
-    border-top: 1px solid rgba(110, 227, 169, 0.08);
   }
-  .territory {
-    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-    font-size: clamp(0.8rem, 1vw, 1.05rem);
-    color: var(--ink);
-    opacity: 0.45;
-    letter-spacing: 0.04em;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    flex: 1;
-    font-style: italic;
-  }
-  .meta {
+  .system {
     font-family: ui-monospace, "SF Mono", monospace;
-    font-size: clamp(0.65rem, 0.8vw, 0.85rem);
+    font-size: clamp(0.6rem, 0.75vw, 0.8rem);
     color: var(--dim);
     opacity: 0.5;
     white-space: nowrap;
   }
-  .meta .conn-dot {
+  .system .conn-dot {
     display: inline-block;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
+    width: 6px; height: 6px; border-radius: 50%;
     background: var(--dim);
     margin-right: 8px;
     vertical-align: middle;
     transition: background 0.4s ease;
   }
-  .meta.live .conn-dot { background: var(--accent); }
+  .system.live .conn-dot { background: var(--accent); }
 
-  /* Subtle breath — a slow pulse on the word so the room feels alive
-     even in the silence between detections. */
+  /* Subtle breath on the hero word — the room feels alive between
+     detections without strobing. */
   .stage.show .word {
     animation: breathe 9s ease-in-out infinite;
   }
   @keyframes breathe {
     0%, 100% { opacity: 1; }
-    50% { opacity: 0.82; }
+    50% { opacity: 0.84; }
   }
 </style>
 </head>
 <body>
-  <div class="stage idle" id="stage">
-    <div class="lang"><span id="lang-label">—</span> <span class="endonym" id="lang-endonym"></span></div>
+  <header class="land">
+    <div class="land-label">on the land of</div>
+    <div class="land-names" id="land-names"></div>
+  </header>
+
+  <main class="stage idle" id="stage">
+    <div class="lang"><span id="lang-label">—</span><span class="endonym" id="lang-endonym"></span></div>
     <div class="word" id="word">—</div>
     <div class="phon" id="phon"></div>
     <div class="literal" id="literal"></div>
-    <div class="terr" id="terr"><span class="label">on the land of</span><span id="terr-names"></span></div>
-    <div class="sci" id="sci"></div>
-    <div class="common" id="common"></div>
+    <div class="meta-line" id="meta-line">
+      <span class="sci" id="sci"></span>
+      <span class="dot"></span>
+      <span class="common" id="common"></span>
+    </div>
     <div class="idle-line" id="idle-line">listening</div>
-  </div>
+  </main>
+
   <div class="today" id="today"></div>
+
   <div class="footer">
-    <div class="territory" id="territory-foot"></div>
-    <div class="meta"><span class="conn-dot"></span><span id="meta-text">offline</span></div>
+    <div class="system"><span class="conn-dot"></span><span id="meta-text">offline</span></div>
   </div>
 
 <script type="module">
@@ -272,46 +288,59 @@
   const $word = document.getElementById("word");
   const $phon = document.getElementById("phon");
   const $literal = document.getElementById("literal");
-  const $terr = document.getElementById("terr");
-  const $terrNames = document.getElementById("terr-names");
   const $sci = document.getElementById("sci");
   const $common = document.getElementById("common");
   const $langLabel = document.getElementById("lang-label");
   const $langEndonym = document.getElementById("lang-endonym");
-  const $territoryFoot = document.getElementById("territory-foot");
-  const $meta = document.querySelector(".meta");
+  const $landNames = document.getElementById("land-names");
+  const $system = document.querySelector(".system");
   const $metaText = document.getElementById("meta-text");
-  const $idleLine = document.getElementById("idle-line");
-
   const $today = document.getElementById("today");
 
-  // Shrink the hero word until it fits on a single line. Starts at the
-  // typographic-target 14vw and binary-searches down to a 4vw floor.
-  // Two RAFs ensure textContent has actually laid out before we measure.
+  // ──────────────────────────────────────────────────────────────────
+  // fitWord: shrink --word-size so the rendered word fits one line.
+  // Uses canvas measureText (matches the live font face) rather than
+  // DOM scrollWidth — synchronous, layout-independent, accurate even
+  // when the element is hidden mid-transition.
+  const _measureCtx = document.createElement("canvas").getContext("2d");
   function fitWord(el) {
-    el.style.setProperty("--word-size", "14vw");
-    requestAnimationFrame(() => requestAnimationFrame(() => {
-      const max = window.innerWidth * 0.92;
-      let lo = 4, hi = 14;
-      for (let i = 0; i < 12 && hi - lo > 0.25; i++) {
-        const mid = (lo + hi) / 2;
-        el.style.setProperty("--word-size", mid + "vw");
-        if (el.scrollWidth <= max) lo = mid; else hi = mid;
-      }
-      el.style.setProperty("--word-size", lo + "vw");
-    }));
+    const text = el.textContent || "";
+    if (!text) return;
+    const cs = getComputedStyle(el);
+    const ff = cs.fontFamily;
+    const fw = cs.fontWeight || 400;
+    const fs = cs.fontStyle || "normal";
+    const ls = parseFloat(cs.letterSpacing) || 0;
+    const vw = window.innerWidth;
+    const max = vw * 0.92;
+    let lo = 3, hi = 14;
+    for (let i = 0; i < 14 && hi - lo > 0.1; i++) {
+      const mid = (lo + hi) / 2;
+      const px = (vw * mid) / 100;
+      _measureCtx.font = `${fs} ${fw} ${px}px ${ff}`;
+      const w = _measureCtx.measureText(text).width + ls * text.length;
+      if (w <= max) lo = mid; else hi = mid;
+    }
+    el.style.setProperty("--word-size", lo.toFixed(2) + "vw");
   }
   window.addEventListener("resize", () => fitWord($word));
 
+  // ──────────────────────────────────────────────────────────────────
+  // Render the land header. Always visible — territory should not
+  // depend on a detection event.
+  function renderLand(territory) {
+    if (!territory || !territory.territories || !territory.territories.length) return;
+    const names = territory.territories.map((t) => t.name);
+    $landNames.innerHTML = names
+      .map((n) => `<span>${n}</span>`)
+      .join(`<span class="sep">·</span>`);
+  }
+
+  // ──────────────────────────────────────────────────────────────────
+  // show: render a bird-detection event in the stage block.
   function show(event) {
     const ind = event.indigenous;
-    const terr = event.territory;
     const name = ind && ind.available && ind.names && ind.names[0];
-
-    // If we don't have a cited Indigenous name, drop the event silently.
-    // The wall is for the names — no name, no display. Keep whatever is on
-    // screen (or the idle "listening" state) until a species we have a
-    // name for is detected.
     if (!name) return;
 
     const langMeta = (ind.languages || {})[name.language] || {};
@@ -320,85 +349,46 @@
     $word.textContent = name.word || "";
     fitWord($word);
     $phon.textContent = name.phonetic ? `[ ${name.phonetic} ]` : "";
-    // Literal translation only — drop notes from the hero; they belong in
-    // the catalog popup, not on a projection wall. Keeps the stack tight.
     $literal.textContent = name.literal ? `“${name.literal}”` : "";
-
-    // Territory: forefront, inside the hero block. Renders as
-    // "ON THE LAND OF / Mississauga · Anishinabewaki" in serif italic.
-    if (terr && terr.available && terr.territories && terr.territories.length) {
-      $terrNames.textContent = terr.territories.map((t) => t.name).join(" · ");
-      $terr.style.display = "";
-    } else {
-      $terr.style.display = "none";
-    }
-
-    // Latin: secondary, italic serif.
     $sci.textContent = event.scientific_name || "";
-    // English: legible but secondary. Drop the confidence percentage from
-    // the hero — it's wall furniture, not information the room needs.
     $common.textContent = event.common_name || "";
 
+    // Territory: if the event carries one, refresh the header.
+    if (event.territory) renderLand(event.territory);
+
     $stage.classList.remove("idle");
-    // Re-trigger entry animation by toggling.
     $stage.classList.remove("show");
     void $stage.offsetWidth;
     $stage.classList.add("show");
 
-    // The last bird stays up forever. The room's listening diary along
-    // the bottom edge gives the wall continuity between detections —
-    // never decay back to "listening" and lose the moment.
     loadToday(event.scientific_name);
   }
 
   function setConn(state) {
-    $meta.classList.toggle("live", state === "live");
+    $system.classList.toggle("live", state === "live");
     $metaText.textContent = state;
   }
 
-  // Persistent territory in the footer — the listener stands somewhere
-  // whether or not a bird is calling. Fetch once on boot.
-  async function loadFooterTerritory() {
+  // Fetch territory once on boot so the header populates before any
+  // bird detection lands.
+  async function loadLand() {
     try {
-      const r = await fetch(`${server}/healthz`);
-      const h = await r.json();
-      const lat = h.listener?.stats?.last_detection?.lat;
-      const lon = h.listener?.stats?.last_detection?.lon;
-      // Even without a detection, the listener has a configured lat/lon. Fall
-      // back to a synthetic /territory call against the cottage coords.
-      const tlat = lat ?? 44.92, tlon = lon ?? -79.37;
-      const t = await (await fetch(`${server}/territory?lat=${tlat}&lon=${tlon}`)).json();
-      if (t.territories && t.territories.length) {
-        $territoryFoot.textContent = "on the land of " + t.territories.map((x) => x.name).join(" · ");
-      }
+      const t = await (await fetch(`${server}/territory?lat=44.92&lon=-79.37`)).json();
+      renderLand(t);
     } catch {}
   }
-  loadFooterTerritory();
+  loadLand();
 
-  // Today's catalog — every species heard today, endonym preferred. Highlights
-  // whichever species is currently on the hero (so the eye can trace the
-  // line and find it in the diary). Refresh every 60s and after each event.
   async function loadToday(currentSci) {
     try {
       const r = await fetch(`${server}/catalog?source=listener`);
       const c = await r.json();
-      if (!c.species || !c.species.length) {
-        $today.innerHTML = "";
-        return;
-      }
-      // If the only species in the catalog is the one currently on the
-      // hero, hide the strip — the diary becomes redundant repetition.
+      if (!c.species || !c.species.length) { $today.innerHTML = ""; return; }
       const others = c.species.filter((s) => s.scientific_name !== currentSci);
-      if (others.length === 0) {
-        $today.innerHTML = "";
-        return;
-      }
+      if (others.length === 0) { $today.innerHTML = ""; return; }
       const parts = c.species.map((s) => {
         const word = s.indigenous_name;
         const now = currentSci && s.scientific_name === currentSci ? "now" : "";
-        // Individual count: when we have ≥2 voiceprint-clustered birds for
-        // this species, append "×N". Drop the badge for solo birds (just
-        // visual noise — implicit one bird per name).
         const n = s.individual_count || 0;
         const tail = n > 1 ? `<span class="count">×${n}</span>` : "";
         const inner = `<span>${word}</span>${tail}`;
@@ -411,8 +401,7 @@
   setInterval(() => loadToday(), 60_000);
 
   // Bootstrap the hero from /catalog on load so a page refresh doesn't
-  // leave the wall idle until the next bird fires. Synthesizes an event
-  // shape matching what the WS broadcast sends.
+  // leave the wall idle until the next bird fires.
   async function bootstrapHero() {
     try {
       const r = await fetch(`${server}/catalog?source=listener`);
@@ -443,6 +432,9 @@
   }
   bootstrapHero();
 
+  // ──────────────────────────────────────────────────────────────────
+  // WebSocket — live detection feed. Auto-reconnects with exponential
+  // backoff capped at 30s.
   let ws;
   let backoff = 1000;
   function connect() {
@@ -455,28 +447,33 @@
       backoff = Math.min(backoff * 2, 30_000);
       return;
     }
-    ws.onopen = () => { setConn("live"); backoff = 1000; };
+    ws.onopen = () => {
+      setConn("live");
+      backoff = 1000;
+    };
     ws.onmessage = (m) => {
       try {
         const event = JSON.parse(m.data);
         if (event.type === "detection") show(event);
-      } catch {}
+      } catch (e) { console.warn("bad event", e); }
     };
     ws.onclose = () => {
-      setConn("reconnecting");
+      setConn("offline");
       setTimeout(connect, backoff);
       backoff = Math.min(backoff * 2, 30_000);
     };
-    ws.onerror = () => { try { ws.close(); } catch {} };
+    ws.onerror = () => {
+      try { ws.close(); } catch {}
+    };
   }
   connect();
 
-  // Click anywhere to enter fullscreen — projector setups need this.
-  document.addEventListener("click", () => {
-    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
-      document.documentElement.requestFullscreen().catch(() => {});
-    }
-  });
+  // Register the service worker — caches the shell so the wall reopens
+  // offline. Always claim the latest registration so the GH Pages
+  // version flips to the newest deploy on next load.
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+  }
 </script>
 </body>
 </html>
