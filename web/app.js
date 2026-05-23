@@ -383,7 +383,13 @@ async function doEnrich(hit, $out) {
     if (!r.ok) throw new Error(`enrich ${r.status}`);
     const data = await r.json();
 
+    // Indigenous names + territory acknowledgment lead. The bird's name in
+    // the language of the people whose land we're standing on comes first;
+    // colonial framing (Linnaean binomial, eBird stats, Wikipedia thumbnail)
+    // is south of that.
     let html = "";
+    html += renderIndigenousBlock(data);
+
     if (data.wikipedia?.thumbnail) {
       html += `<img class="thumb" src="${escape(data.wikipedia.thumbnail)}" alt="" />`;
     }
@@ -392,8 +398,6 @@ async function doEnrich(hit, $out) {
     } else if (data.wikipedia?.extract) {
       html += `<h4>wikipedia</h4><p>${escape(data.wikipedia.extract)}</p>`;
     }
-
-    html += renderIndigenousBlock(data);
 
     if (data.ebird?.available) {
       const n = data.ebird.recent_obs_count;
