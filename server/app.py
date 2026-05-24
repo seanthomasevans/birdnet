@@ -649,6 +649,99 @@ def catalog(date: Optional[str] = None, source: Optional[str] = None) -> dict:
     }
 
 
+@app.get("/individuals")
+def individuals(date: Optional[str] = None, source: Optional[str] = None,
+                min_conf: float = 0.15) -> dict:
+    """Per-species, per-voiceprint detection roll for a date.
+
+    For each species heard, group the day's detections by the cosine-
+    clustered individual_id and return first/last/count/avg-confidence
+    so the summary page can show distinct birds (not just species).
+    Detections without an individual_id fall under a synthetic 'unknown'
+    bucket so they're still visible."""
+    day = date or dt.datetime.utcnow().date().isoformat()
+    params: list = [f"{day}%"]
+    sql = (
+        "SELECT ts, top_label, top_sci, top_conf, individual_id "
+        "FROM detections WHERE ts LIKE ? AND COALESCE(top_conf, 0) >= ?"
+    )
+    params.append(float(min_conf))
+    if source:
+        sql += " AND source = ?"
+        params.append(source)
+    sql += " ORDER BY ts ASC"
+    with db() as conn:
+        rows = [dict(r) for r in conn.execute(sql, params).fetchall()]
+
+    species: dict[str, dict] = {}
+    for r in rows:
+        sci = r["top_sci"] or ""
+        if not sci:
+            continue
+        s = species.get(sci)
+        if s is None:
+            ind = lookup_names(sci)
+            first_name = (ind.get("names") or [None])[0] if ind.get("available") else None
+            languages = ind.get("languages") or {}
+            lang_key = (first_name or {}).get("language") if first_name else None
+            lang_meta = languages.get(lang_key) if lang_key else None
+            s = {
+                "scientific_name": sci,
+                "common_name": r["top_label"],
+                "indigenous_name": (first_name or {}).get("word") if first_name else None,
+                "indigenous_phonetic": (first_name or {}).get("phonetic") if first_name else None,
+                "indigenous_language": (lang_meta or {}).get("english_name") if lang_meta else None,
+                "indigenous_endonym": (lang_meta or {}).get("endonym") if lang_meta else None,
+                "_individuals": {},
+                "count": 0,
+                "max_conf": 0.0,
+            }
+            species[sci] = s
+        ind_id = r["individual_id"] or "unknown"
+        bucket = s["_individuals"].setdefault(ind_id, {
+            "individual_id": ind_id,
+            "count": 0,
+            "first_heard": r["ts"],
+            "last_heard": r["ts"],
+            "max_conf": 0.0,
+            "_conf_sum": 0.0,
+        })
+        bucket["count"] += 1
+        bucket["last_heard"] = r["ts"]
+        c = float(r["top_conf"] or 0)
+        bucket["_conf_sum"] += c
+        if c > bucket["max_conf"]:
+            bucket["max_conf"] = c
+        s["count"] += 1
+        if c > s["max_conf"]:
+            s["max_conf"] = c
+
+    out = []
+    for s in species.values():
+        inds = []
+        for b in s["_individuals"].values():
+            n = b["count"]
+            avg = (b.pop("_conf_sum") / n) if n else 0.0
+            b["avg_conf"] = round(avg, 3)
+            b["max_conf"] = round(b["max_conf"], 3)
+            inds.append(b)
+        inds.sort(key=lambda x: x["first_heard"])
+        s["individuals"] = inds
+        s["individual_count"] = len([i for i in inds if i["individual_id"] != "unknown"])
+        s["max_conf"] = round(s["max_conf"], 3)
+        s.pop("_individuals")
+        out.append(s)
+    out.sort(key=lambda x: (-x["count"], x["common_name"] or ""))
+
+    return {
+        "date": day,
+        "species_count": len(out),
+        "detection_count": sum(s["count"] for s in out),
+        "individual_count": sum(s["individual_count"] for s in out),
+        "species": out,
+    }
+
+
 @app.get("/detection/{det_id}")
 def detection(det_id: str) -> dict:
     with db() as conn:

@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>BirdNET · log</title>
+<style>
+  /* Log view — chronological ledger of detections, grouped by species
+     and split out by voiceprint-clustered individual. Same type system
+     as wall.html (serif / mono / sans-caps) but informational density
+     instead of projector grandeur. Reads as a museum logbook. */
+
+  :root {
+    --bg: #000;
+    --ink: #f4f1ea;
+    --accent: #6ee3a9;
+    --dim: #8a9d92;
+    --dim-soft: rgba(244, 241, 234, 0.45);
+    --rule: rgba(244, 241, 234, 0.10);
+    --rule-accent: rgba(110, 227, 169, 0.18);
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "P052", Georgia, serif;
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+
+    --cols: 12;
+    --col-gap: 1.4vw;
+    --pad-x: 3.2vw;
+    --pad-y: 2.4vh;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--serif);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: geometricPrecision;
+  }
+  body {
+    padding: var(--pad-y) var(--pad-x) calc(var(--pad-y) * 3);
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+
+  .label {
+    font-family: var(--sans);
+    font-size: clamp(0.7rem, 0.82vw, 0.92rem);
+    text-transform: uppercase;
+    letter-spacing: 0.38em;
+    color: var(--accent);
+    opacity: 0.78;
+    font-weight: 500;
+  }
+
+  /* HEADER + tabs */
+  header.hdr {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 2vw;
+    padding-bottom: 1.6vh;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 2.4vh;
+  }
+  .hdr-left .label { display: block; margin-bottom: 0.6vh; }
+  .hdr-title {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: clamp(1.3rem, 1.85vw, 2rem);
+    color: var(--ink);
+    line-height: 1.2;
+  }
+  .hdr-nav {
+    display: flex;
+    gap: 1.6vw;
+    font-family: var(--mono);
+    font-size: clamp(0.7rem, 0.82vw, 0.92rem);
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+  }
+  .hdr-nav a {
+    color: var(--dim);
+    text-decoration: none;
+    padding-bottom: 0.4vh;
+    border-bottom: 1px solid transparent;
+  }
+  .hdr-nav a.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  /* STATS strip — three big numbers */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--col-gap);
+    padding: 2.4vh 0;
+    border-bottom: 1px solid var(--rule);
+    margin-bottom: 3vh;
+  }
+  .stat .label { display: block; margin-bottom: 0.8vh; }
+  .stat-n {
+    font-family: var(--serif);
+    font-size: clamp(2.4rem, 4.5vw, 4.8rem);
+    line-height: 1;
+    color: var(--ink);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+  }
+  .stat-sub {
+    font-family: var(--mono);
+    font-size: clamp(0.7rem, 0.8vw, 0.88rem);
+    color: var(--dim);
+    opacity: 0.7;
+    margin-top: 0.6vh;
+    letter-spacing: 0.06em;
+  }
+
+  /* SPECIES LIST — each species is a card with a header row + a list
+     of individual voiceprints heard today. */
+  .species-list { display: flex; flex-direction: column; gap: 3.2vh; }
+
+  .sp {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    column-gap: var(--col-gap);
+    row-gap: 1.4vh;
+    padding-top: 2.4vh;
+    border-top: 1px solid var(--rule);
+  }
+  .sp:first-child { border-top: none; padding-top: 0; }
+
+  .sp-ind {
+    grid-column: 1 / 8;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: clamp(1.4rem, 2vw, 2.2rem);
+    color: var(--ink);
+    line-height: 1.1;
+    letter-spacing: -0.005em;
+  }
+  .sp-ind .phon {
+    font-family: var(--mono);
+    font-style: normal;
+    font-size: clamp(0.78rem, 0.95vw, 1.05rem);
+    color: var(--accent);
+    opacity: 0.78;
+    margin-left: 0.6em;
+    letter-spacing: 0.02em;
+  }
+
+  .sp-museum {
+    grid-column: 8 / 13;
+    text-align: right;
+    align-self: end;
+    font-family: var(--serif);
+  }
+  .sp-museum .common {
+    font-size: clamp(1.1rem, 1.45vw, 1.6rem);
+    font-weight: 500;
+    color: var(--ink);
+    line-height: 1.15;
+  }
+  .sp-museum .sci {
+    font-style: italic;
+    font-size: clamp(0.85rem, 1.05vw, 1.18rem);
+    color: var(--ink);
+    opacity: 0.65;
+    margin-top: 0.2vh;
+  }
+
+  .sp-summary {
+    grid-column: 1 / 13;
+    display: flex;
+    gap: 2.4vw;
+    font-family: var(--mono);
+    font-size: clamp(0.78rem, 0.92vw, 1rem);
+    color: var(--dim);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    padding-bottom: 0.2vh;
+  }
+  .sp-summary b {
+    color: var(--accent);
+    font-weight: 500;
+    margin-left: 0.4em;
+  }
+
+  /* Individual voiceprint table */
+  .voices {
+    grid-column: 1 / 13;
+    display: grid;
+    grid-template-columns: auto 1fr 1fr 1fr auto;
+    column-gap: 1.6vw;
+    row-gap: 1vh;
+    font-family: var(--mono);
+    font-size: clamp(0.78rem, 0.92vw, 1rem);
+    color: var(--ink);
+    margin-top: 0.6vh;
+  }
+  .voices .v-head {
+    font-family: var(--sans);
+    font-size: clamp(0.62rem, 0.72vw, 0.78rem);
+    text-transform: uppercase;
+    letter-spacing: 0.22em;
+    color: var(--dim-soft);
+    padding-bottom: 0.6vh;
+    border-bottom: 1px solid var(--rule);
+  }
+  .voices .v-head.r { text-align: right; }
+  .voices .v-cell { padding: 0.4vh 0; }
+  .voices .v-cell.r { text-align: right; }
+  .voices .v-id {
+    color: var(--accent);
+    opacity: 0.85;
+    letter-spacing: 0.08em;
+  }
+  .voices .v-id.unknown { color: var(--dim); opacity: 0.55; }
+  .voices .v-count {
+    color: var(--ink);
+    opacity: 0.85;
+  }
+  .voices .v-conf {
+    color: var(--accent);
+    opacity: 0.75;
+  }
+  .voices .v-time {
+    color: var(--ink);
+    opacity: 0.7;
+  }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 8vh 0;
+    color: var(--dim);
+    font-style: italic;
+    font-size: clamp(1rem, 1.3vw, 1.4rem);
+  }
+
+  /* Footer system */
+  .footer {
+    margin-top: 4vh;
+    padding-top: 1.6vh;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: var(--mono);
+    font-size: clamp(0.65rem, 0.78vw, 0.88rem);
+    color: var(--dim);
+    opacity: 0.65;
+    letter-spacing: 0.08em;
+  }
+  .footer .conn-dot {
+    display: inline-block;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--dim);
+    margin-right: 8px;
+    vertical-align: 0.04em;
+  }
+  .footer .conn-dot.live {
+    background: var(--accent);
+    box-shadow: 0 0 8px 0 rgba(110, 227, 169, 0.45);
+  }
+</style>
+</head>
+<body>
+
+  <header class="hdr">
+    <div class="hdr-left">
+      <span class="label">field log</span>
+      <div class="hdr-title" id="hdr-date">today</div>
+    </div>
+    <nav class="hdr-nav">
+      <a href="./wall.html">Wall</a>
+      <a href="./log.html" class="active">Log</a>
+      <a href="./index.html">Tap</a>
+    </nav>
+  </header>
+
+  <section class="stats">
+    <div class="stat">
+      <span class="label">species</span>
+      <div class="stat-n" id="stat-species">0</div>
+      <div class="stat-sub">distinct birds named</div>
+    </div>
+    <div class="stat">
+      <span class="label">voices</span>
+      <div class="stat-n" id="stat-voices">0</div>
+      <div class="stat-sub">voiceprint-clustered individuals</div>
+    </div>
+    <div class="stat">
+      <span class="label">detections</span>
+      <div class="stat-n" id="stat-detections">0</div>
+      <div class="stat-sub">total calls heard today</div>
+    </div>
+  </section>
+
+  <section class="species-list" id="species-list"></section>
+
+  <footer class="footer">
+    <div><span class="conn-dot" id="conn-dot"></span><span id="conn-text">loading…</span></div>
+    <div>Anishinaabemowin via the Ojibwe People's Dictionary</div>
+  </footer>
+
+<script type="module">
+  const params = new URLSearchParams(location.search);
+  const DEFAULT_SERVER = "https://seans-macbook-pro-m3.tail65b106.ts.net:8443";
+  const server = params.get("server") || localStorage.getItem("birdnet.server") || DEFAULT_SERVER;
+  const date = params.get("date"); // optional YYYY-MM-DD
+
+  const $hdrDate = document.getElementById("hdr-date");
+  const $statSpecies = document.getElementById("stat-species");
+  const $statVoices = document.getElementById("stat-voices");
+  const $statDetections = document.getElementById("stat-detections");
+  const $list = document.getElementById("species-list");
+  const $connDot = document.getElementById("conn-dot");
+  const $connText = document.getElementById("conn-text");
+
+  function fmtTime(iso) {
+    if (!iso) return "—";
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return "—";
+    const h = String(d.getHours()).padStart(2, "0");
+    const m = String(d.getMinutes()).padStart(2, "0");
+    return `${h}:${m}`;
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return "today";
+    const d = new Date(iso + "T00:00:00");
+    return d.toLocaleDateString(undefined, {
+      weekday: "long", month: "long", day: "numeric", year: "numeric"
+    });
+  }
+
+  function shortId(id) {
+    if (!id || id === "unknown") return "unidentified";
+    return id.replace(/[^a-z0-9]/gi, "").slice(0, 8).toUpperCase();
+  }
+
+  function renderSpecies(s) {
+    const ind = s.indigenous_name || "—";
+    const phon = s.indigenous_phonetic ? `<span class="phon">[ ${s.indigenous_phonetic} ]</span>` : "";
+    const common = s.common_name || "";
+    const sci = s.scientific_name || "";
+    const detCount = s.count || 0;
+    const indCount = s.individual_count || 0;
+    const maxConf = s.max_conf != null ? `${Math.round((s.max_conf || 0) * 100)}%` : "—";
+
+    const voiceRows = (s.individuals || []).map((v) => {
+      const idClass = v.individual_id === "unknown" ? "v-id unknown" : "v-id";
+      return `
+        <div class="v-cell ${idClass}">${shortId(v.individual_id)}</div>
+        <div class="v-cell v-count">${v.count} call${v.count === 1 ? "" : "s"}</div>
+        <div class="v-cell v-time">${fmtTime(v.first_heard)}</div>
+        <div class="v-cell v-time">${fmtTime(v.last_heard)}</div>
+        <div class="v-cell r v-conf">${Math.round((v.max_conf || 0) * 100)}%</div>
+      `;
+    }).join("");
+
+    return `
+      <article class="sp">
+        <div class="sp-ind">${ind} ${phon}</div>
+        <div class="sp-museum">
+          <div class="common">${common}</div>
+          <div class="sci">${sci}</div>
+        </div>
+        <div class="sp-summary">
+          <span>voices<b>${indCount}</b></span>
+          <span>calls<b>${detCount}</b></span>
+          <span>peak<b>${maxConf}</b></span>
+        </div>
+        <div class="voices">
+          <div class="v-head">voice</div>
+          <div class="v-head">heard</div>
+          <div class="v-head">first</div>
+          <div class="v-head">last</div>
+          <div class="v-head r">peak conf</div>
+          ${voiceRows}
+        </div>
+      </article>
+    `;
+  }
+
+  async function load() {
+    try {
+      const qs = new URLSearchParams({ source: "listener" });
+      if (date) qs.set("date", date);
+      const r = await fetch(`${server}/individuals?${qs.toString()}`);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = await r.json();
+
+      $hdrDate.textContent = fmtDate(data.date);
+      $statSpecies.textContent = data.species_count || 0;
+      $statVoices.textContent = data.individual_count || 0;
+      $statDetections.textContent = data.detection_count || 0;
+
+      const species = data.species || [];
+      if (!species.length) {
+        $list.innerHTML = `<div class="empty">No birds named yet — waiting for the first cited detection.</div>`;
+      } else {
+        $list.innerHTML = species.map(renderSpecies).join("");
+      }
+
+      $connDot.classList.add("live");
+      $connText.textContent = "live";
+    } catch (e) {
+      $connDot.classList.remove("live");
+      $connText.textContent = `offline (${e.message})`;
+      console.warn(e);
+    }
+  }
+
+  load();
+  setInterval(load, 30_000);
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("./service-worker.js").catch(() => {});
+  }
+</script>
+</body>
+</html>

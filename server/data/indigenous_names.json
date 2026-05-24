@@ -1,6 +1,6 @@
 {
-  "version": "0.1",
-  "last_updated": "2026-05-22",
+  "version": "0.2",
+  "last_updated": "2026-05-24",
   "scope": "Canada — Ontario first. Anishinaabemowin (Ojibwe) entries sourced from the Ojibwe People's Dictionary. Designed for extension to Kanien'kéha (Mohawk), Cree (nēhiyawēwin / ililīmowin), and other Indigenous languages of Turtle Island.",
   "acknowledgment": "Indigenous names for birds are gifts from First Nations, Métis, and Inuit communities. They belong to those communities — we host citations and pronunciations here with reverence and attribution, and link back to the community-led sources that hold them.",
   "principles": [
@@ -242,6 +242,171 @@
           "source_url": "https://ojibwe.lib.umn.edu/main-entry/opichi-na",
           "audio_url": null,
           "notes": "Opichi's return is a marker of spring in many Anishinaabe communities."
+        }
+      ]
+    },
+    "Zenaida macroura": {
+      "common_name": "Mourning Dove",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "omiimii",
+          "plural": "omiimiig",
+          "phonetic": "oh-MEE-mee",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/omiimii-na",
+          "audio_url": null,
+          "notes": "Omiimii's soft cooing carries the dawn at Anishinaabe lakes."
+        }
+      ]
+    },
+    "Ardea herodias": {
+      "common_name": "Great Blue Heron",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "zhashagi",
+          "plural": "zhashagiwag",
+          "phonetic": "ZHAH-shah-gih",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/zhashagi-na",
+          "audio_url": null
+        }
+      ]
+    },
+    "Megaceryle alcyon": {
+      "common_name": "Belted Kingfisher",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "ogiishkimanisii",
+          "plural": "ogiishkimanisiig",
+          "phonetic": "oh-GEESH-kih-mah-nih-see",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/ogiishkimanisii-na",
+          "audio_url": null,
+          "notes": "Onomatopoeic — carries the kingfisher's rattling call."
+        }
+      ]
+    },
+    "Larus argentatus": {
+      "common_name": "Herring Gull",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "gayaashk",
+          "plural": "gayaashkwag",
+          "phonetic": "gah-YAHSHK",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/gayaashk-na",
+          "audio_url": null,
+          "literal": "gull"
+        }
+      ]
+    },
+    "Antigone canadensis": {
+      "common_name": "Sandhill Crane",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "ajijaak",
+          "plural": "ajijaakwag",
+          "phonetic": "ah-JIH-jahk",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/ajijaak-na",
+          "audio_url": null,
+          "notes": "Ajijaak is also a doodem (crane clan) — traditional speakers and orators."
+        }
+      ]
+    },
+    "Grus canadensis": {
+      "common_name": "Sandhill Crane",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "ajijaak",
+          "plural": "ajijaakwag",
+          "phonetic": "ah-JIH-jahk",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/ajijaak-na",
+          "audio_url": null,
+          "notes": "Ajijaak is also a doodem (crane clan) — traditional speakers and orators."
+        }
+      ]
+    },
+    "Buteo jamaicensis": {
+      "common_name": "Red-tailed Hawk",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "gekek",
+          "plural": "gekekwag",
+          "phonetic": "geh-KEK",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/gekek-na",
+          "audio_url": null,
+          "literal": "hawk (generic)",
+          "notes": "Gekek is the general word for hawk; Anishinaabemowin doesn't typically split Buteo species at the name level."
+        }
+      ]
+    },
+    "Hirundo rustica": {
+      "common_name": "Barn Swallow",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "zhaashaawanibiisi",
+          "plural": "zhaashaawanibiisiwag",
+          "phonetic": "zhah-SHAH-wah-nih-BEE-sih",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/zhaashaawanibiisi-na",
+          "audio_url": null
+        }
+      ]
+    },
+    "Agelaius phoeniceus": {
+      "common_name": "Red-winged Blackbird",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "asiginaak",
+          "plural": "asiginaakwag",
+          "phonetic": "ah-sih-gih-NAHK",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/asiginaak-na",
+          "audio_url": null,
+          "literal": "blackbird"
+        }
+      ]
+    },
+    "Spinus tristis": {
+      "common_name": "American Goldfinch",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "aginjibagwesi",
+          "plural": "aginjibagwesiwag",
+          "phonetic": "ah-gin-jih-bahg-WEH-sih",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/aginjibagwesi-na",
+          "audio_url": null
+        }
+      ]
+    },
+    "Carduelis tristis": {
+      "common_name": "American Goldfinch",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "aginjibagwesi",
+          "plural": "aginjibagwesiwag",
+          "phonetic": "ah-gin-jih-bahg-WEH-sih",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/aginjibagwesi-na",
+          "audio_url": null
+        }
+      ]
+    },
+    "Cathartes aura": {
+      "common_name": "Turkey Vulture",
+      "names": [
+        {
+          "language": "ojibwe",
+          "word": "wiinaange",
+          "plural": "wiinaangeg",
+          "phonetic": "WEE-nahn-geh",
+          "source_url": "https://ojibwe.lib.umn.edu/main-entry/wiinaange-na",
+          "audio_url": null,
+          "notes": "In Nenabozho stories wiinaange's bald head comes from a teaching moment with the trickster."
         }
       ]
     }
